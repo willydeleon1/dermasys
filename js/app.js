@@ -910,31 +910,70 @@ async function verDocumentoConsulta(consultaId) {
     navegarA('print');
 }
 
-function construirWorkerPDFPorHojas(container, filename) {
+async function generarInstanciaPDFPorHojas(container) {
     const sheets = Array.from(container.querySelectorAll('.medical-sheet'));
-    const opt = {
-        margin: [8, 8, 8, 8],
-        filename: filename,
-        image: { type: 'jpeg', quality: 0.96 },
-        html2canvas: { scale: 1.8, useCORS: true, scrollY: 0 },
-        jsPDF: { unit: 'mm', format: 'letter', orientation: 'portrait' }
-    };
-    if (sheets.length <= 1) {
-        return html2pdf().set(opt).from(sheets[0] || container);
-    }
-    let worker = html2pdf().set(opt).from(sheets[0]).toPdf();
-    for (let i = 1; i < sheets.length; i++) {
-        worker = worker.get('pdf').then(pdf => {
+    const targets = sheets.length > 0 ? sheets : [container];
+
+    // Crear instancia limpia de jsPDF en formato Carta (215.9 x 279.4 mm)
+    const dummy = document.createElement('div');
+    dummy.style.width = '1px';
+    dummy.style.height = '1px';
+    const pdf = await html2pdf()
+        .set({ jsPDF: { unit: 'mm', format: 'letter', orientation: 'portrait' } })
+        .from(dummy)
+        .toPdf()
+        .get('pdf');
+
+    const pageW = pdf.internal.pageSize.getWidth();   // 215.9 mm
+    const pageH = pdf.internal.pageSize.getHeight();  // 279.4 mm
+    const margin = 10;
+    const maxW = pageW - margin * 2;
+    const maxH = pageH - margin * 2;
+
+    for (let i = 0; i < targets.length; i++) {
+        if (i > 0) {
             pdf.addPage();
-        }).from(sheets[i]).toContainer().toCanvas().toPdf();
+        }
+        const canvas = await html2pdf()
+            .set({
+                html2canvas: {
+                    scale: 2,
+                    useCORS: true,
+                    backgroundColor: '#ffffff',
+                    scrollY: 0
+                }
+            })
+            .from(targets[i])
+            .toContainer()
+            .toCanvas()
+            .get('canvas');
+
+        const imgData = canvas.toDataURL('image/jpeg', 0.96);
+        let imgW = maxW;
+        let imgH = (canvas.height * imgW) / canvas.width;
+        if (imgH > maxH) {
+            imgH = maxH;
+            imgW = (canvas.width * imgH) / canvas.height;
+        }
+        const x = (pageW - imgW) / 2;
+        const y = margin;
+        pdf.addImage(imgData, 'JPEG', x, y, imgW, imgH);
     }
-    return worker;
+
+    return pdf;
 }
 
-function exportarHojasAPDF(nombreBase = 'DermaSys_Documento') {
+async function exportarHojasAPDF(nombreBase = 'DermaSys_Documento') {
     const container = document.getElementById('printSheetsContainer');
     const filename = `${nombreBase}_${new Date().toISOString().split('T')[0]}.pdf`;
-    construirWorkerPDFPorHojas(container, filename).save();
+    Swal.fire({ title: 'Generando PDF...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+    try {
+        const pdf = await generarInstanciaPDFPorHojas(container);
+        pdf.save(filename);
+        Swal.close();
+    } catch (e) {
+        Swal.fire('Aviso', 'No se pudo generar el PDF: ' + e.message, 'warning');
+    }
 }
 
 async function enviarDocumentoActualPorCorreo() {
@@ -960,7 +999,8 @@ async function enviarDocumentoActualPorCorreo() {
     const pdfFilename = `Informe_Dra_Doris_Romero_${nombrePac}.pdf`;
 
     try {
-        const pdfDataUri = await construirWorkerPDFPorHojas(container, pdfFilename).outputPdf('datauristring');
+        const pdf = await generarInstanciaPDFPorHojas(container);
+        const pdfDataUri = pdf.output('datauristring');
         const creds = db.getCreds();
 
         const htmlContent = `
