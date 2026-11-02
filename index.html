@@ -91,13 +91,13 @@
             <div class="card-body p-4 d-flex flex-wrap justify-content-between align-items-center gap-3">
                 <div>
                     <span class="badge mb-2" style="background: rgba(196, 181, 253, 0.2); color: #ddd6fe; border: 1px solid rgba(196, 181, 253, 0.35);">
-                        <i class="fa-solid fa-tablet-screen-button me-1"></i> Sincronizado para iPad & Mac
+                        <i class="fa-solid fa-cloud-bolt me-1"></i> Sistema Clínico en la Nube
                     </span>
                     <h2 class="serif-brand fw-bold mb-1 text-white" style="font-size: 2rem; letter-spacing: 0.5px;">
                         Dra. Doris Romero &mdash; Medicina Estética y Dermatología
                     </h2>
                     <p class="mb-0 text-white-50 small">
-                        Historia Clínica Dermatológica, Mapeo Facial con Apple Pencil, Rutinas de Skincare Día/Noche y Seguimiento Fotográfico.
+                        Historia Clínica Dermatológica, Mapeo Anatómico Interactivo, Rutinas de Skincare Día/Noche y Seguimiento Fotográfico.
                     </p>
                 </div>
                 <div class="d-flex gap-2">
@@ -387,7 +387,7 @@
                 </div>
                 <div class="d-flex flex-wrap gap-2">
                     <button class="btn btn-warning fw-bold text-dark btn-sm" data-bs-toggle="modal" data-bs-target="#modalSubirFoto">
-                        <i class="fa-solid fa-camera me-1"></i> Subir Foto / Estudio (iPad)
+                        <i class="fa-solid fa-camera me-1"></i> Subir Foto / Estudio
                     </button>
                     <button class="btn btn-derma btn-sm" onclick="navegarA('nueva-consulta', currentPatientId)">
                         <i class="fa-solid fa-wand-magic-sparkles me-1"></i> Nueva Consulta / Procedimiento
@@ -442,7 +442,7 @@
                         <!-- Comparador Deslizable Interactivo Antes vs Después -->
                         <div class="card-derma p-3 mb-3" id="baComparatorCard" style="display: none;">
                             <div class="d-flex flex-wrap justify-content-between align-items-center mb-2 gap-2">
-                                <h6 class="fw-bold text-derma mb-0"><i class="fa-solid fa-sliders me-1"></i> Comparador Interactivo Antes vs. Después (Deslice con el dedo en el iPad)</h6>
+                                <h6 class="fw-bold text-derma mb-0"><i class="fa-solid fa-sliders me-1"></i> Comparador Interactivo Antes vs. Después (Deslice el control para comparar)</h6>
                                 <div class="d-flex gap-2">
                                     <select id="baSelectAntes" class="form-select form-select-sm" onchange="actualizarComparadorBA()"></select>
                                     <select id="baSelectDespues" class="form-select form-select-sm" onchange="actualizarComparadorBA()"></select>
@@ -581,10 +581,10 @@
                     </div>
                 </div>
 
-                <!-- Columna Derecha: Mapa Anatómico Interactivo para iPad / Apple Pencil -->
+                <!-- Columna Derecha: Mapa Anatómico Interactivo -->
                 <div class="col-lg-5">
                     <div class="card-derma p-4 sticky-top" style="top: 80px;">
-                        <h5 class="fw-bold text-derma mb-1"><i class="fa-solid fa-pen-nib me-2"></i> Mapa Anatómico Interactivo (Apple Pencil / Touch)</h5>
+                        <h5 class="fw-bold text-derma mb-1"><i class="fa-solid fa-pen-nib me-2"></i> Mapa Anatómico Interactivo</h5>
                         <p class="small text-muted mb-2">Elija Rostro, Cuerpo Completo o suba una foto del paciente para marcar zonas y puntos de aplicación.</p>
 
                         <!-- Selector de Vista Anatómica: Rostro / Cuerpo Completo / Foto Paciente -->
@@ -716,11 +716,19 @@
         <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
             <div>
                 <h3 class="fw-bold mb-0"><i class="fa-solid fa-calendar-check text-derma me-2"></i> Agenda de Citas y Controles</h3>
-                <p class="text-muted small mb-0">Agendamiento rápido de pacientes de WhatsApp y pacientes registrados</p>
+                <p class="text-muted small mb-0">Agendamiento rápido, recordatorios automáticos por correo/WhatsApp y exportación a PDF</p>
             </div>
-            <button class="btn btn-derma" data-bs-toggle="modal" data-bs-target="#modalAgendarCita">
-                <i class="fa-solid fa-calendar-plus me-1"></i> Agendar Cita
-            </button>
+            <div class="d-flex flex-wrap gap-2">
+                <button class="btn btn-outline-derma btn-sm" onclick="enviarRecordatoriosProximosCorreo()">
+                    <i class="fa-solid fa-paper-plane me-1"></i> Enviar Recordatorios (Próx. 2 Días)
+                </button>
+                <button class="btn btn-outline-secondary btn-sm" onclick="exportarAgendaCitasPDF()">
+                    <i class="fa-solid fa-file-pdf text-danger me-1"></i> Exportar en PDF
+                </button>
+                <button class="btn btn-derma btn-sm" data-bs-toggle="modal" data-bs-target="#modalAgendarCita">
+                    <i class="fa-solid fa-calendar-plus me-1"></i> Agendar Cita
+                </button>
+            </div>
         </div>
 
         <div class="card-derma overflow-hidden">
@@ -732,7 +740,7 @@
                             <th>Paciente</th>
                             <th>Tipo</th>
                             <th>Estado</th>
-                            <th>Recordar por WhatsApp</th>
+                            <th>Recordar (WhatsApp / Correo)</th>
                             <th class="text-end pe-3">Acciones</th>
                         </tr>
                     </thead>
@@ -820,7 +828,7 @@
                         <input type="date" id="foto_fecha" class="form-control" value="2026-11-02" required>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label small fw-bold">Tomar con Cámara del iPad o Seleccionar Foto <span class="text-danger">*</span></label>
+                        <label class="form-label small fw-bold">Seleccionar Fotografía o Tomar con Cámara <span class="text-danger">*</span></label>
                         <input type="file" id="foto_archivo" class="form-control" accept="image/*" required>
                         <div class="form-text small">El sistema comprime automáticamente la foto a ~150 KB sin perder nitidez clínica.</div>
                     </div>
@@ -946,7 +954,7 @@
             </div>
             <form onsubmit="guardarConfigSupabase(event)">
                 <div class="modal-body p-4">
-                    <h6 class="fw-bold text-derma mb-2"><i class="fa-solid fa-database me-1"></i> 1. Sincronización Nube Supabase (iPad + Mac)</h6>
+                    <h6 class="fw-bold text-derma mb-2"><i class="fa-solid fa-database me-1"></i> 1. Sincronización Nube Supabase</h6>
                     <p class="small text-muted mb-2">
                         Pegue aquí la URL y la Anon Key de su proyecto gratuito de <strong>Supabase</strong>. Si lo deja vacío, funciona en modo local de prueba.
                     </p>
@@ -985,7 +993,7 @@
 <footer class="py-3 bg-white border-top text-muted small mt-auto no-print">
     <div class="container-fluid d-flex flex-wrap justify-content-between align-items-center px-4">
         <div><strong>DermaSys</strong> &bull; Dra. Doris Romero &mdash; Medicina Estética y Dermatología (M.P.P.S: 131642 | C.M: 13750)</div>
-        <div>Optimizado para iPadOS & macOS &copy; 2026</div>
+        <div>Sistema Clínico Dermo-Estético &copy; 2026</div>
     </div>
 </footer>
 

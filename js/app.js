@@ -687,7 +687,7 @@ function renderizarGaleriaFotos(fotos) {
     const selDespues = document.getElementById('baSelectDespues');
 
     if (fotos.length === 0) {
-        cont.innerHTML = `<div class="col-12"><div class="card-derma p-4 text-center text-muted small">No hay fotografías ni estudios cargados aún. Puede tomar una foto directo con la cámara del iPad.</div></div>`;
+        cont.innerHTML = `<div class="col-12"><div class="card-derma p-4 text-center text-muted small">No hay fotografías ni estudios cargados aún.</div></div>`;
         document.getElementById('baComparatorCard').style.display = 'none';
         return;
     }
@@ -1233,6 +1233,7 @@ async function enviarRecordatorioCitaCorreo(citaId) {
         });
         const data = await res.json();
         if (data.ok) {
+            await db.update('citas', c.id, { recordatorio_enviado: true });
             Swal.fire('¡Recordatorio Enviado!', data.message, 'success');
         } else {
             Swal.fire('Error al enviar', data.error || 'No se pudo enviar el correo.', 'error');
@@ -1240,6 +1241,129 @@ async function enviarRecordatorioCitaCorreo(citaId) {
     } catch (e) {
         Swal.fire('Aviso', 'No se pudo conectar con el servidor de correo.', 'warning');
     }
+}
+
+async function enviarRecordatoriosProximosCorreo() {
+    Swal.fire({ title: 'Verificando citas próximas...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+    const [citas, pacientes] = await Promise.all([db.getAll('citas'), db.getAll('pacientes')]);
+    const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0);
+    const limite = new Date(hoy.getTime() + 2 * 86400000);
+
+    const proximas = citas.filter(c => {
+        if (c.estado === 'Cancelada' || c.estado === 'Completada') return false;
+        const fc = new Date(c.fecha_cita + 'T00:00:00');
+        return fc >= hoy && fc <= limite;
+    });
+
+    if (proximas.length === 0) {
+        return Swal.fire('Sin citas en los próximos 2 días', 'No hay pacientes agendados para hoy, mañana o pasado mañana pendientes de recordatorio.', 'info');
+    }
+
+    const creds = db.getCreds();
+    const endpoint = window.location.hostname.includes('vercel.app') ? '/api/enviar-correo' : 'enviar_correo_local.php';
+    let enviados = 0;
+
+    for (const c of proximas) {
+        const p = pacientes.find(x => Number(x.id) === Number(c.paciente_id));
+        if (!p || !p.correo) continue;
+        const htmlRecordatorio = `
+            <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;border:1px solid #ddd6fe;border-radius:12px;overflow:hidden;">
+                <div style="background:#1e1b4b;color:#ffffff;padding:20px 24px;text-align:center;">
+                    <h2 style="margin:0;font-family:Georgia,serif;letter-spacing:1px;">DRA. DORIS ROMERO</h2>
+                    <div style="color:#c4b5fd;font-size:12px;margin-top:4px;">Medicina Estética y Dermatología &bull; M.P.P.S: 131642 | C.M: 13750</div>
+                </div>
+                <div style="padding:24px;color:#1e293b;">
+                    <h3 style="color:#6d28d9;margin-top:0;">Recordatorio de Cita Médica</h3>
+                    <p>Estimado(a) <strong>${esc(p.nombre_apellido)}</strong>,</p>
+                    <p>Le recordamos cordialmente los detalles de su próxima cita programada:</p>
+                    <div style="background:#f5f3ff;border-left:4px solid #6d28d9;padding:14px;border-radius:6px;margin:16px 0;">
+                        <div><strong>Fecha:</strong> ${formatearFecha(c.fecha_cita)}</div>
+                        ${c.hora_cita ? `<div><strong>Hora:</strong> ${esc(c.hora_cita)}</div>` : ''}
+                        <div><strong>Tipo de Consulta:</strong> ${esc(c.tipo)}</div>
+                        ${c.notas ? `<div><strong>Indicaciones:</strong> ${esc(c.notas)}</div>` : ''}
+                    </div>
+                    <p style="font-size:12px;color:#64748b;">Mensaje enviado por <strong>DermaSys</strong>.</p>
+                </div>
+            </div>
+        `;
+        try {
+            const res = await fetch(endpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    destinatario: p.correo,
+                    asunto: `Recordatorio de Cita (${formatearFecha(c.fecha_cita)}) | Dra. Doris Romero - DermaSys`,
+                    html: htmlRecordatorio,
+                    smtpEmail: creds.smtpEmail,
+                    smtpPass: creds.smtpPass
+                })
+            });
+            const data = await res.json();
+            if (data.ok) {
+                enviados++;
+                await db.update('citas', c.id, { recordatorio_enviado: true });
+            }
+        } catch (e) {}
+    }
+
+    Swal.fire('Proceso Completado', `Se enviaron ${enviados} recordatorio(s) por correo electrónico para los próximos 2 días.`, 'success');
+}
+
+async function exportarAgendaCitasPDF() {
+    const [citas, pacientes] = await Promise.all([
+        db.getAll('citas', 'fecha_cita', true),
+        db.getAll('pacientes')
+    ]);
+    const filas = citas.map((c, i) => {
+        const p = pacientes.find(x => Number(x.id) === Number(c.paciente_id)) || {};
+        return `
+            <tr>
+                <td>${i + 1}</td>
+                <td class="fw-bold">${formatearFecha(c.fecha_cita)} ${esc(c.hora_cita || '')}</td>
+                <td>${esc(p.nombre_apellido || '')}</td>
+                <td>${esc(p.cedula || '')}</td>
+                <td>${esc(p.telefono || '')}</td>
+                <td>${esc(c.tipo || '')}</td>
+                <td>${esc(c.estado || '')}</td>
+            </tr>
+        `;
+    }).join('');
+
+    const htmlSheet = `
+        <div class="medical-sheet">
+            <div class="sheet-header d-flex justify-content-between align-items-center">
+                <div>
+                    <h3 class="serif-brand fw-bold mb-0" style="font-size:1.65rem;color:#1e1b4b;letter-spacing:1px;">DRA. DORIS ROMERO</h3>
+                    <div class="fw-bold" style="font-size:0.85rem;color:#6d28d9;letter-spacing:2px;text-transform:uppercase;">MEDICINA ESTÉTICA Y DERMATOLOGÍA</div>
+                    <div class="text-muted" style="font-size:0.75rem;">M.P.P.S: 131642 &bull; C.M: 13750</div>
+                </div>
+                <div class="text-end">
+                    <img src="img/logo_dr.svg" alt="Logo DR" style="height:68px;">
+                </div>
+            </div>
+            <h4 class="text-center fw-bold mb-3" style="color:#1e1b4b;">REPORTE DE PACIENTES AGENDADOS</h4>
+            <table class="table table-bordered table-sm small align-middle">
+                <thead style="background:#1e1b4b;color:#fff;">
+                    <tr>
+                        <th>#</th>
+                        <th>Fecha / Hora</th>
+                        <th>Paciente</th>
+                        <th>Cédula</th>
+                        <th>Teléfono</th>
+                        <th>Motivo / Tipo</th>
+                        <th>Estado</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${filas || '<tr><td colspan="7" class="text-center">Sin citas agendadas</td></tr>'}
+                </tbody>
+            </table>
+        </div>
+    `;
+    document.getElementById('printSheetsContainer').innerHTML = htmlSheet;
+    document.getElementById('btnVolverDePrint').onclick = () => navegarA('citas');
+    navegarA('print');
 }
 
 async function guardarCitaExpress(e) {
