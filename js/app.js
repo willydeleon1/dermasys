@@ -418,11 +418,24 @@ async function cargarHistoriaPaciente(pacienteId) {
     renderizarListaEgresos(egresos);
 }
 
-// ==================== 4. MAPA FACIAL INTERACTIVO (APPLE PENCIL / TOUCH) ====================
+// ==================== 4. MAPA ANATÓMICO INTERACTIVO (ROSTRO 3 VISTAS / CUERPO COMPLETO / FOTO REAL) ====================
+let currentMapType = 'rostro';
+const mapBgImages = {
+    rostro: new Image(),
+    cuerpo: new Image(),
+    custom: null
+};
+
 function initFaceMapCanvas() {
     faceCanvas = document.getElementById('faceMapCanvas');
     if (!faceCanvas) return;
     faceCtx = faceCanvas.getContext('2d');
+
+    mapBgImages.rostro.onload = () => { if (currentMapType === 'rostro') redibujarMapaFacial(); };
+    mapBgImages.cuerpo.onload = () => { if (currentMapType === 'cuerpo') redibujarMapaFacial(); };
+    mapBgImages.rostro.src = 'img/mapa_rostro.jpg';
+    mapBgImages.cuerpo.src = 'img/mapa_cuerpo.jpg';
+
     dibujarEsquemaFacialBase();
 
     const getPos = (e) => {
@@ -462,6 +475,38 @@ function initFaceMapCanvas() {
     faceCanvas.addEventListener('touchend', endDraw);
 }
 
+function cambiarFondoMapa(tipo, btnEl) {
+    currentMapType = tipo;
+    document.querySelectorAll('.btn-vista-mapa').forEach(b => {
+        b.classList.remove('btn-derma');
+        b.classList.add('btn-outline-derma');
+    });
+    if (btnEl) {
+        btnEl.classList.remove('btn-outline-derma');
+        btnEl.classList.add('btn-derma');
+    }
+    redibujarMapaFacial();
+}
+
+function cargarFotoPersonalizadaMapa(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+        const img = new Image();
+        img.onload = () => {
+            mapBgImages.custom = img;
+            currentMapType = 'custom';
+            const btns = document.querySelectorAll('.btn-vista-mapa');
+            btns.forEach(b => { b.classList.remove('btn-derma'); b.classList.add('btn-outline-derma'); });
+            if (btns[2]) { btns[2].classList.remove('btn-outline-derma'); btns[2].classList.add('btn-derma'); }
+            redibujarMapaFacial();
+        };
+        img.src = ev.target.result;
+    };
+    reader.readAsDataURL(file);
+}
+
 function seleccionarPincelMapa(color, label, btnEl) {
     currentBrushColor = color;
     currentBrushLabel = label;
@@ -489,69 +534,16 @@ function dibujarEsquemaFacialBase() {
     faceCtx.fillStyle = '#ffffff';
     faceCtx.fillRect(0, 0, w, h);
 
-    faceCtx.strokeStyle = '#94a3b8';
-    faceCtx.lineWidth = 2;
-
-    // Contorno del óvalo facial
-    faceCtx.beginPath();
-    faceCtx.ellipse(w / 2, h * 0.44, 115, 148, 0, 0, Math.PI * 2);
-    faceCtx.stroke();
-
-    // Líneas guía simétricas sutiles (frente, entrecejo, tercio medio, tercio inferior)
-    faceCtx.save();
-    faceCtx.strokeStyle = '#e2e8f0';
-    faceCtx.setLineDash([4, 4]);
-    faceCtx.beginPath();
-    faceCtx.moveTo(w / 2, 30); faceCtx.lineTo(w / 2, h - 20);
-    faceCtx.moveTo(80, h * 0.32); faceCtx.lineTo(w - 80, h * 0.32);
-    faceCtx.moveTo(80, h * 0.50); faceCtx.lineTo(w - 80, h * 0.50);
-    faceCtx.stroke();
-    faceCtx.restore();
-
-    // Cejas
-    faceCtx.beginPath();
-    faceCtx.arc(w / 2 - 48, h * 0.37, 32, Math.PI * 1.15, Math.PI * 1.85);
-    faceCtx.stroke();
-    faceCtx.beginPath();
-    faceCtx.arc(w / 2 + 48, h * 0.37, 32, Math.PI * 1.15, Math.PI * 1.85);
-    faceCtx.stroke();
-
-    // Ojos
-    faceCtx.beginPath();
-    faceCtx.ellipse(w / 2 - 48, h * 0.40, 22, 10, 0, 0, Math.PI * 2);
-    faceCtx.ellipse(w / 2 + 48, h * 0.40, 22, 10, 0, 0, Math.PI * 2);
-    faceCtx.stroke();
-
-    // Nariz
-    faceCtx.beginPath();
-    faceCtx.moveTo(w / 2, h * 0.39);
-    faceCtx.lineTo(w / 2 - 12, h * 0.53);
-    faceCtx.lineTo(w / 2 + 12, h * 0.53);
-    faceCtx.stroke();
-
-    // Labios
-    faceCtx.beginPath();
-    faceCtx.ellipse(w / 2, h * 0.62, 34, 12, 0, 0, Math.PI * 2);
-    faceCtx.moveTo(w / 2 - 34, h * 0.62);
-    faceCtx.lineTo(w / 2 + 34, h * 0.62);
-    faceCtx.stroke();
-
-    // Cuello
-    faceCtx.beginPath();
-    faceCtx.moveTo(w / 2 - 55, h * 0.78);
-    faceCtx.lineTo(w / 2 - 65, h * 0.95);
-    faceCtx.moveTo(w / 2 + 55, h * 0.78);
-    faceCtx.lineTo(w / 2 + 65, h * 0.95);
-    faceCtx.stroke();
-
-    // Etiquetas anatómicas guía
-    faceCtx.fillStyle = '#94a3b8';
-    faceCtx.font = '11px Plus Jakarta Sans, sans-serif';
-    faceCtx.fillText('Frente', w / 2 - 18, h * 0.21);
-    faceCtx.fillText('Glabela', w / 2 - 20, h * 0.34);
-    faceCtx.fillText('Malar', w / 2 - 88, h * 0.50);
-    faceCtx.fillText('Malar', w / 2 + 56, h * 0.50);
-    faceCtx.fillText('Mentón', w / 2 - 20, h * 0.74);
+    const activeImg = mapBgImages[currentMapType];
+    if (activeImg && activeImg.complete && activeImg.naturalWidth > 0) {
+        // Dibujar imagen manteniendo proporción centrada (contain)
+        const scale = Math.min(w / activeImg.naturalWidth, h / activeImg.naturalHeight);
+        const nw = activeImg.naturalWidth * scale;
+        const nh = activeImg.naturalHeight * scale;
+        const nx = (w - nw) / 2;
+        const ny = (h - nh) / 2;
+        faceCtx.drawImage(activeImg, nx, ny, nw, nh);
+    }
 }
 
 function redibujarMapaFacial() {
@@ -563,10 +555,13 @@ function redibujarMapaFacial() {
         faceCtx.lineCap = 'round';
         faceCtx.lineJoin = 'round';
         if (s.points.length === 1) {
-            // Punto de aplicación (ej: unidad de toxina o pápula)
+            // Punto de aplicación con halo blanco para máxima visibilidad sobre rostro/cuerpo/foto
             faceCtx.beginPath();
-            faceCtx.arc(s.points[0].x, s.points[0].y, 5, 0, Math.PI * 2);
+            faceCtx.arc(s.points[0].x, s.points[0].y, 6, 0, Math.PI * 2);
             faceCtx.fill();
+            faceCtx.lineWidth = 2;
+            faceCtx.strokeStyle = '#ffffff';
+            faceCtx.stroke();
         } else {
             faceCtx.beginPath();
             faceCtx.moveTo(s.points[0].x, s.points[0].y);
@@ -630,7 +625,7 @@ function cargarPlantillaSkincare(tipo) {
 async function guardarConsulta(e) {
     e.preventDefault();
     const pacId = Number(document.getElementById('cons_paciente_id').value);
-    const mapaData = faceStrokes.length > 0 ? faceCanvas.toDataURL('image/png') : '';
+    const mapaData = faceStrokes.length > 0 ? faceCanvas.toDataURL('image/jpeg', 0.85) : '';
 
     const payload = {
         paciente_id: pacId,

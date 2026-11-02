@@ -581,11 +581,25 @@
                     </div>
                 </div>
 
-                <!-- Columna Derecha: Mapa Facial Interactivo para iPad / Apple Pencil -->
+                <!-- Columna Derecha: Mapa Anatómico Interactivo para iPad / Apple Pencil -->
                 <div class="col-lg-5">
                     <div class="card-derma p-4 sticky-top" style="top: 80px;">
-                        <h5 class="fw-bold text-derma mb-1"><i class="fa-solid fa-pen-nib me-2"></i> Mapa Facial Interactivo (Apple Pencil / Touch)</h5>
-                        <p class="small text-muted mb-3">Toque o dibuje sobre el esquema para marcar puntos de toxina, rellenos o lesiones.</p>
+                        <h5 class="fw-bold text-derma mb-1"><i class="fa-solid fa-pen-nib me-2"></i> Mapa Anatómico Interactivo (Apple Pencil / Touch)</h5>
+                        <p class="small text-muted mb-2">Elija Rostro, Cuerpo Completo o suba una foto del paciente para marcar zonas y puntos de aplicación.</p>
+
+                        <!-- Selector de Vista Anatómica: Rostro / Cuerpo Completo / Foto Paciente -->
+                        <div class="btn-group w-100 mb-3 shadow-sm" role="group">
+                            <button type="button" class="btn btn-sm btn-vista-mapa btn-derma" onclick="cambiarFondoMapa('rostro', this)">
+                                <i class="fa-solid fa-face-smile me-1"></i> Rostro (3 Vistas)
+                            </button>
+                            <button type="button" class="btn btn-sm btn-vista-mapa btn-outline-derma" onclick="cambiarFondoMapa('cuerpo', this)">
+                                <i class="fa-solid fa-person me-1"></i> Cuerpo Completo
+                            </button>
+                            <button type="button" class="btn btn-sm btn-vista-mapa btn-outline-derma" onclick="document.getElementById('mapaFotoInput').click()">
+                                <i class="fa-solid fa-camera me-1"></i> Foto Real
+                            </button>
+                        </div>
+                        <input type="file" id="mapaFotoInput" accept="image/*" class="d-none" onchange="cargarFotoPersonalizadaMapa(event)">
 
                         <!-- Selector de Marcadores Clínicos -->
                         <div class="d-flex flex-wrap gap-1 mb-3">
@@ -596,15 +610,15 @@
                                 ● Relleno / AH
                             </button>
                             <button type="button" class="btn btn-sm btn-pincel-mapa" style="background:#fee2e2;color:#dc2626;font-weight:600;" onclick="seleccionarPincelMapa('#dc2626', 'Lesión / Lunar', this)">
-                                ● Lesión
+                                ● Lesión / Biopsia
                             </button>
                             <button type="button" class="btn btn-sm btn-pincel-mapa" style="background:#fef3c7;color:#d97706;font-weight:600;" onclick="seleccionarPincelMapa('#d97706', 'Mancha / Melasma', this)">
-                                ● Melasma
+                                ● Melasma / Láser
                             </button>
                         </div>
 
                         <div class="face-map-container mb-3">
-                            <canvas id="faceMapCanvas" width="380" height="420"></canvas>
+                            <canvas id="faceMapCanvas" width="520" height="390" style="width:100%;height:auto;display:block;"></canvas>
                         </div>
 
                         <div class="d-flex justify-content-between mb-4">
