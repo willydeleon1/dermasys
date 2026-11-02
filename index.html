@@ -1,0 +1,982 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>DermaSys | Dra. Doris Romero - Medicina Estética y Dermatología</title>
+
+    <!-- Configuración PWA para iPad y Mac -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="DermaSys">
+    <link rel="apple-touch-icon" href="img/logo_dr.svg">
+    <link rel="icon" type="image/svg+xml" href="img/logo_dr.svg">
+
+    <!-- Bootstrap 5.3 + FontAwesome 6.5 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <!-- Librerías: SweetAlert2, Supabase JS Client v2, html2pdf.js -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+    <!-- Hoja de Estilos Paleta Opción C (Lavanda / Violeta Clínico + Azul Índigo) -->
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- NAVBAR SUPERIOR (OPTIMIZADO PARA IPAD & MAC) -->
+<nav class="navbar navbar-expand-lg navbar-derma sticky-top no-print">
+    <div class="container-fluid">
+        <a class="navbar-brand d-flex align-items-center gap-3 text-white text-decoration-none" href="javascript:void(0)" onclick="navegarA('dashboard')">
+            <div class="monogram-badge">DR</div>
+            <div class="d-flex flex-column">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="serif-brand fw-bold" style="font-size: 1.3rem; letter-spacing: 1px;">DRA. DORIS ROMERO</span>
+                    <span class="badge" style="background: linear-gradient(135deg, #8b5cf6, #6d28d9); font-size: 0.65rem;">DermaSys</span>
+                </div>
+                <span style="font-size: 0.72rem; color: #c4b5fd; letter-spacing: 0.3px;">
+                    Medicina Estética y Dermatología &bull; <span class="text-white-50">M.P.P.S: 131642 | C.M: 13750</span>
+                </span>
+            </div>
+        </a>
+
+        <button class="navbar-toggler text-white border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navDerma">
+            <i class="fa-solid fa-bars fs-4"></i>
+        </button>
+
+        <div class="collapse navbar-collapse" id="navDerma">
+            <ul class="navbar-nav me-auto mb-2 mb-lg-0 ms-lg-3 gap-1">
+                <li class="nav-item">
+                    <a class="nav-link active" data-nav="dashboard" href="javascript:void(0)" onclick="navegarA('dashboard')">
+                        <i class="fa-solid fa-chart-pie"></i> Panel Principal
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" data-nav="pacientes" href="javascript:void(0)" onclick="navegarA('pacientes')">
+                        <i class="fa-solid fa-users"></i> Pacientes
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" data-nav="citas" href="javascript:void(0)" onclick="navegarA('citas')">
+                        <i class="fa-solid fa-calendar-check"></i> Agenda
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" data-nav="copiloto-ia" href="javascript:void(0)" onclick="navegarA('copiloto-ia')">
+                        <i class="fa-solid fa-wand-magic-sparkles" style="color: #c4b5fd;"></i> Copiloto IA
+                    </a>
+                </li>
+            </ul>
+
+            <div class="d-flex flex-wrap align-items-center gap-2">
+                <span id="cloudStatusBadge" role="button" onclick="abrirModalSupabase()" title="Configurar conexión a Supabase Cloud"></span>
+                <button class="btn btn-derma btn-sm d-flex align-items-center gap-2" onclick="navegarA('nuevo-paciente')">
+                    <i class="fa-solid fa-user-plus"></i> Nuevo Paciente
+                </button>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<!-- CONTENEDOR PRINCIPAL -->
+<main class="container-fluid px-3 px-lg-4 py-4 flex-grow-1">
+
+    <!-- ==================== VISTA 1: DASHBOARD ==================== -->
+    <section id="view-dashboard" class="view-section">
+        <!-- Banner de Bienvenida con Logo DR -->
+        <div class="card-derma mb-4 border-0 overflow-hidden" style="background: linear-gradient(135deg, #1e1b4b 0%, #3b0764 60%, #4c1d95 100%); color: #fff;">
+            <div class="card-body p-4 d-flex flex-wrap justify-content-between align-items-center gap-3">
+                <div>
+                    <span class="badge mb-2" style="background: rgba(196, 181, 253, 0.2); color: #ddd6fe; border: 1px solid rgba(196, 181, 253, 0.35);">
+                        <i class="fa-solid fa-tablet-screen-button me-1"></i> Sincronizado para iPad & Mac
+                    </span>
+                    <h2 class="serif-brand fw-bold mb-1 text-white" style="font-size: 2rem; letter-spacing: 0.5px;">
+                        Dra. Doris Romero &mdash; Medicina Estética y Dermatología
+                    </h2>
+                    <p class="mb-0 text-white-50 small">
+                        Historia Clínica Dermatológica, Mapeo Facial con Apple Pencil, Rutinas de Skincare Día/Noche y Seguimiento Fotográfico.
+                    </p>
+                </div>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-light fw-bold text-derma" onclick="navegarA('nuevo-paciente')">
+                        <i class="fa-solid fa-user-plus me-1"></i> Registrar Paciente
+                    </button>
+                    <button class="btn btn-outline-light" onclick="navegarA('citas')">
+                        <i class="fa-solid fa-calendar-plus me-1"></i> Ver Agenda
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Métricas -->
+        <div class="row g-3 mb-4">
+            <div class="col-sm-6 col-xl-3">
+                <div class="metric-card d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="text-muted small fw-semibold">Pacientes en Expediente</div>
+                        <div class="h3 fw-bold mb-0 mt-1" id="statTotalPacientes">0</div>
+                    </div>
+                    <div class="metric-icon"><i class="fa-solid fa-users"></i></div>
+                </div>
+            </div>
+            <div class="col-sm-6 col-xl-3">
+                <div class="metric-card d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="text-muted small fw-semibold">Consultas y Procedimientos</div>
+                        <div class="h3 fw-bold mb-0 mt-1" id="statTotalConsultas">0</div>
+                    </div>
+                    <div class="metric-icon"><i class="fa-solid fa-spa"></i></div>
+                </div>
+            </div>
+            <div class="col-sm-6 col-xl-3">
+                <div class="metric-card d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="text-muted small fw-semibold">Citas Próximas</div>
+                        <div class="h3 fw-bold mb-0 mt-1" id="statCitasPendientes">0</div>
+                    </div>
+                    <div class="metric-icon"><i class="fa-solid fa-calendar-check"></i></div>
+                </div>
+            </div>
+            <div class="col-sm-6 col-xl-3">
+                <div class="metric-card d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="text-muted small fw-semibold">Fotos Antes / Después</div>
+                        <div class="h3 fw-bold mb-0 mt-1" id="statFotosEvolutivas">0</div>
+                    </div>
+                    <div class="metric-icon"><i class="fa-solid fa-camera-retro"></i></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-4">
+            <div class="col-xl-8">
+                <div class="card-derma p-3">
+                    <div class="d-flex justify-content-between align-items-center pb-2 mb-3 border-bottom">
+                        <h5 class="fw-bold mb-0"><i class="fa-solid fa-clock-rotate-left text-derma me-2"></i> Últimas Atenciones y Procedimientos</h5>
+                        <button class="btn btn-sm btn-outline-derma" onclick="navegarA('pacientes')">Ver Todos</button>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light small text-uppercase text-muted">
+                                <tr>
+                                    <th>Fecha</th>
+                                    <th>Paciente</th>
+                                    <th>Tipo</th>
+                                    <th>Procedimiento / Diagnóstico</th>
+                                    <th class="text-end">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="dashUltimasConsultas"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-4">
+                <div class="card-derma p-3 h-100">
+                    <div class="d-flex justify-content-between align-items-center pb-2 mb-3 border-bottom">
+                        <h5 class="fw-bold mb-0"><i class="fa-solid fa-calendar-day text-derma me-2"></i> Próximas Citas</h5>
+                        <button class="btn btn-sm btn-link text-derma text-decoration-none p-0" onclick="navegarA('citas')">Agenda &rarr;</button>
+                    </div>
+                    <div id="dashProximasCitas"></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ==================== VISTA 2: DIRECTORIO DE PACIENTES ==================== -->
+    <section id="view-pacientes" class="view-section" style="display: none;">
+        <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+            <div>
+                <h3 class="fw-bold mb-0"><i class="fa-solid fa-users text-derma me-2"></i> Directorio de Pacientes</h3>
+                <p class="text-muted small mb-0">Búsqueda por nombre, cédula o teléfono con perfil de biotipo y fototipo cutáneo</p>
+            </div>
+            <button class="btn btn-derma" onclick="navegarA('nuevo-paciente')">
+                <i class="fa-solid fa-user-plus me-1"></i> Nuevo Paciente
+            </button>
+        </div>
+
+        <div class="card-derma p-3 mb-3">
+            <div class="input-group">
+                <span class="input-group-text bg-white"><i class="fa-solid fa-magnifying-glass text-muted"></i></span>
+                <input type="text" id="buscadorPacientes" class="form-control" placeholder="Buscar paciente por nombre, cédula o WhatsApp..." oninput="cargarTablaPacientes()">
+            </div>
+        </div>
+
+        <div class="card-derma overflow-hidden">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light small text-uppercase text-muted">
+                        <tr>
+                            <th class="ps-3">Paciente</th>
+                            <th>Cédula</th>
+                            <th>Edad / Sexo</th>
+                            <th>Perfil Cutáneo</th>
+                            <th>WhatsApp</th>
+                            <th class="text-end pe-3">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tablaPacientesBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    <!-- ==================== VISTA 3: NUEVO / EDITAR PACIENTE ==================== -->
+    <section id="view-nuevo-paciente" class="view-section" style="display: none;">
+        <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
+            <h3 class="fw-bold mb-0"><i class="fa-solid fa-user-plus text-derma me-2"></i> <span id="tituloFormPaciente">Registrar Nuevo Paciente</span></h3>
+            <button class="btn btn-outline-secondary btn-sm" onclick="navegarA('pacientes')"><i class="fa-solid fa-arrow-left me-1"></i> Volver</button>
+        </div>
+
+        <form id="formPaciente" onsubmit="guardarPaciente(event)">
+            <input type="hidden" id="pac_id_edit">
+            <div class="row g-4">
+                <div class="col-lg-6">
+                    <div class="card-derma p-4 h-100">
+                        <h5 class="fw-bold text-derma mb-3"><i class="fa-regular fa-id-card me-2"></i> Datos de Identificación y Contacto</h5>
+                        <div class="row g-3">
+                            <div class="col-md-5">
+                                <label class="form-label small fw-bold">Cédula de Identidad <span class="text-danger">*</span></label>
+                                <input type="text" id="pac_cedula" class="form-control" placeholder="Ej: V-19845612" required>
+                            </div>
+                            <div class="col-md-7">
+                                <label class="form-label small fw-bold">Nombre y Apellido <span class="text-danger">*</span></label>
+                                <input type="text" id="pac_nombre" class="form-control" placeholder="Nombre completo" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label small fw-bold">Edad</label>
+                                <input type="number" id="pac_edad" class="form-control" placeholder="Años">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label small fw-bold">Sexo</label>
+                                <select id="pac_sexo" class="form-select">
+                                    <option value="Femenino">Femenino</option>
+                                    <option value="Masculino">Masculino</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label small fw-bold">Fecha Nacimiento</label>
+                                <input type="date" id="pac_fnac" class="form-control">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold">Teléfono / WhatsApp</label>
+                                <input type="text" id="pac_telefono" class="form-control" placeholder="0414-0000000">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold">Correo Electrónico</label>
+                                <input type="email" id="pac_correo" class="form-control" placeholder="paciente@gmail.com">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold">Ocupación / Profesión</label>
+                                <input type="text" id="pac_ocupacion" class="form-control" placeholder="Ej: Arquitecta">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold">Dirección</label>
+                                <input type="text" id="pac_direccion" class="form-control" placeholder="Ciudad / Urbanización">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-6">
+                    <div class="card-derma p-4 h-100">
+                        <h5 class="fw-bold text-derma mb-3"><i class="fa-solid fa-spa me-2"></i> Perfil Cutáneo y Antecedentes Dermo-Estéticos</h5>
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label class="form-label small fw-bold">Biotipo Cutáneo</label>
+                                <select id="pac_biotipo" class="form-select">
+                                    <option value="Mixta">Piel Mixta</option>
+                                    <option value="Grasa / Seborreica">Piel Grasa / Seborreica</option>
+                                    <option value="Seca / Alipídica">Piel Seca / Alipídica</option>
+                                    <option value="Sensible / Rosácea">Piel Sensible / Rosácea</option>
+                                    <option value="Eudérmica (Normal)">Eudérmica (Normal)</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label small fw-bold">Fototipo Fitzpatrick</label>
+                                <select id="pac_fitzpatrick" class="form-select">
+                                    <option value="I">Tipo I (Muy clara)</option>
+                                    <option value="II">Tipo II (Clara)</option>
+                                    <option value="III" selected>Tipo III (Intermedia)</option>
+                                    <option value="IV">Tipo IV (Morena clara)</option>
+                                    <option value="V">Tipo V (Morena oscura)</option>
+                                    <option value="VI">Tipo VI (Negra)</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label small fw-bold">Escala Glogau</label>
+                                <select id="pac_glogau" class="form-select">
+                                    <option value="I - Leve">I - Leve (20-30 años)</option>
+                                    <option value="II - Moderado">II - Moderado (30-40 años)</option>
+                                    <option value="III - Avanzado">III - Avanzado (50+ años)</option>
+                                    <option value="IV - Severo">IV - Severo (60+ años)</option>
+                                </select>
+                            </div>
+
+                            <div class="col-md-3">
+                                <label class="form-label small fw-bold">¿Alergias?</label>
+                                <select id="pac_alergias_bool" class="form-select">
+                                    <option value="No">No</option>
+                                    <option value="Sí">Sí</option>
+                                </select>
+                            </div>
+                            <div class="col-md-9">
+                                <label class="form-label small fw-bold">Detalle de Alergias (Medicamentos / Lidocaína / Cosméticos)</label>
+                                <input type="text" id="pac_alergias_desc" class="form-control" placeholder="Especificar si es alérgico a AINES, anestésicos, látex, etc.">
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold">Tendencia a Queloides</label>
+                                <select id="pac_queloide" class="form-select">
+                                    <option value="No">No</option>
+                                    <option value="Sí">Sí (Cicatriz hipertrófica/queloidea)</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold">Uso de Protector Solar</label>
+                                <select id="pac_spf" class="form-select">
+                                    <option value="Diario">Diario</option>
+                                    <option value="Ocasional">Ocasional</option>
+                                    <option value="No utiliza">No utiliza</option>
+                                </select>
+                            </div>
+
+                            <div class="col-12">
+                                <label class="form-label small fw-bold">Antecedentes Dermatológicos</label>
+                                <input type="text" id="pac_ant_derma" class="form-control" placeholder="Ej: Acné inflamatorio, Melasma, Rosácea, Dermatitis atópica, Herpes labial">
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label small fw-bold">Procedimientos Estéticos Previos (Toxina, Ác. Hialurónico, Bioestimuladores, Isotretinoína)</label>
+                                <input type="text" id="pac_proc_previos" class="form-control" placeholder="Indique fechas aproximadas y productos aplicados previamente">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold">Antecedentes Médicos Generales</label>
+                                <input type="text" id="pac_ant_personales" class="form-control" placeholder="HTA, Tiroides, SOP, Autoinmunes...">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold">Medicación o Suplementos Actuales</label>
+                                <input type="text" id="pac_medicacion" class="form-control" placeholder="Medicamentos de uso diario">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-12 text-end">
+                    <button type="button" class="btn btn-outline-secondary me-2" onclick="navegarA('pacientes')">Cancelar</button>
+                    <button type="submit" class="btn btn-derma px-4"><i class="fa-solid fa-floppy-disk me-1"></i> Guardar Expediente</button>
+                </div>
+            </div>
+        </form>
+    </section>
+
+    <!-- ==================== VISTA 4: HISTORIA CLÍNICA DEL PACIENTE ==================== -->
+    <section id="view-historia" class="view-section" style="display: none;">
+        <!-- Encabezado del Paciente -->
+        <div class="card-derma mb-4 border-0" style="background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 60%, #3b0764 100%); color: #fff;">
+            <div class="card-body p-4 d-flex flex-wrap justify-content-between align-items-center gap-3">
+                <div class="d-flex align-items-center gap-3">
+                    <div id="histInicial" style="width:60px;height:60px;border-radius:50%;background:linear-gradient(135deg,#8b5cf6,#6d28d9);display:flex;align-items:center;justify-content:center;font-size:1.7rem;font-weight:800;">P</div>
+                    <div>
+                        <h2 class="h3 fw-bold mb-1 text-white" id="histNombre">Paciente</h2>
+                        <div class="small text-white-50" id="histDatosSub"></div>
+                    </div>
+                </div>
+                <div class="d-flex flex-wrap gap-2">
+                    <button class="btn btn-warning fw-bold text-dark btn-sm" data-bs-toggle="modal" data-bs-target="#modalSubirFoto">
+                        <i class="fa-solid fa-camera me-1"></i> Subir Foto / Estudio (iPad)
+                    </button>
+                    <button class="btn btn-derma btn-sm" onclick="navegarA('nueva-consulta', currentPatientId)">
+                        <i class="fa-solid fa-wand-magic-sparkles me-1"></i> Nueva Consulta / Procedimiento
+                    </button>
+                    <button class="btn btn-outline-light btn-sm" onclick="navegarA('nuevo-egreso', currentPatientId)">
+                        <i class="fa-solid fa-file-medical me-1"></i> Egreso / Reposo
+                    </button>
+                    <button class="btn btn-outline-light btn-sm" onclick="navegarA('nuevo-paciente', currentPatientId)">
+                        <i class="fa-solid fa-pen"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-4">
+            <!-- Columna Izquierda: Perfil Cutáneo -->
+            <div class="col-lg-4 col-xl-3">
+                <div class="card-derma p-3">
+                    <h6 class="fw-bold text-derma border-bottom pb-2 mb-3"><i class="fa-solid fa-spa me-1"></i> Ficha Dermo-Estética</h6>
+                    <div id="histFichaLateral"></div>
+                </div>
+            </div>
+
+            <!-- Columna Derecha: Pestañas -->
+            <div class="col-lg-8 col-xl-9">
+                <ul class="nav nav-pills mb-3 bg-white p-2 rounded border shadow-sm gap-2" role="tablist">
+                    <li class="nav-item">
+                        <button class="nav-link active fw-bold" data-bs-toggle="pill" data-bs-target="#tab-derma-consultas" type="button">
+                            <i class="fa-solid fa-notes-medical me-1"></i> Consultas y Procedimientos <span class="badge bg-secondary ms-1" id="badgeCountConsultas">0</span>
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link fw-bold" data-bs-toggle="pill" data-bs-target="#tab-derma-fotos" type="button">
+                            <i class="fa-solid fa-camera-retro me-1"></i> Galería Antes / Después & IA <span class="badge bg-derma ms-1" id="badgeCountFotos">0</span>
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link fw-bold" data-bs-toggle="pill" data-bs-target="#tab-derma-egresos" type="button">
+                            <i class="fa-solid fa-file-medical me-1"></i> Egresos y Reposos <span class="badge bg-danger ms-1" id="badgeCountEgresos">0</span>
+                        </button>
+                    </li>
+                </ul>
+
+                <div class="tab-content">
+                    <!-- Pestaña 1: Consultas -->
+                    <div class="tab-pane fade show active" id="tab-derma-consultas">
+                        <div id="histListaConsultas"></div>
+                    </div>
+
+                    <!-- Pestaña 2: Galería Antes / Después -->
+                    <div class="tab-pane fade" id="tab-derma-fotos">
+                        <!-- Comparador Deslizable Interactivo Antes vs Después -->
+                        <div class="card-derma p-3 mb-3" id="baComparatorCard" style="display: none;">
+                            <div class="d-flex flex-wrap justify-content-between align-items-center mb-2 gap-2">
+                                <h6 class="fw-bold text-derma mb-0"><i class="fa-solid fa-sliders me-1"></i> Comparador Interactivo Antes vs. Después (Deslice con el dedo en el iPad)</h6>
+                                <div class="d-flex gap-2">
+                                    <select id="baSelectAntes" class="form-select form-select-sm" onchange="actualizarComparadorBA()"></select>
+                                    <select id="baSelectDespues" class="form-select form-select-sm" onchange="actualizarComparadorBA()"></select>
+                                </div>
+                            </div>
+                            <div class="ba-slider-wrapper">
+                                <img id="baImgDespues" class="ba-img" alt="Después">
+                                <div class="ba-Overlay" id="baOverlayAntes">
+                                    <img id="baImgAntes" class="ba-img" alt="Antes">
+                                </div>
+                            </div>
+                            <input type="range" class="form-range mt-2" min="0" max="100" value="50" oninput="moverSliderBA(this.value)">
+                        </div>
+
+                        <div class="row g-3" id="histGaleriaFotos"></div>
+                    </div>
+
+                    <!-- Pestaña 3: Egresos -->
+                    <div class="tab-pane fade" id="tab-derma-egresos">
+                        <div id="histListaEgresos"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ==================== VISTA 5: NUEVA CONSULTA + MAPA FACIAL + SKINCARE ==================== -->
+    <section id="view-nueva-consulta" class="view-section" style="display: none;">
+        <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
+            <div>
+                <h3 class="fw-bold mb-0"><i class="fa-solid fa-wand-magic-sparkles text-derma me-2"></i> Consulta Dermo-Estética y Mapa Facial</h3>
+                <div class="small text-muted" id="consBannerNombre"></div>
+            </div>
+            <button class="btn btn-outline-secondary btn-sm" onclick="navegarA('historia', currentPatientId)"><i class="fa-solid fa-arrow-left me-1"></i> Cancelar</button>
+        </div>
+
+        <form id="formConsulta" onsubmit="guardarConsulta(event)">
+            <input type="hidden" id="cons_paciente_id">
+            <div class="row g-4">
+                <!-- Columna Izquierda: Evaluación Clínica + Skincare Día/Noche -->
+                <div class="col-lg-7">
+                    <div class="card-derma p-4 mb-4">
+                        <h5 class="fw-bold text-derma mb-3"><i class="fa-solid fa-stethoscope me-2"></i> 1. Evaluación Dermatológica y Procedimiento</h5>
+                        <div class="row g-3">
+                            <div class="col-md-5">
+                                <label class="form-label small fw-bold">Fecha de Atención</label>
+                                <input type="date" id="cons_fecha" class="form-control" required>
+                            </div>
+                            <div class="col-md-7">
+                                <label class="form-label small fw-bold">Tipo de Atención</label>
+                                <select id="cons_tipo" class="form-select">
+                                    <option value="Primera Consulta Dermatológica">Primera Consulta Dermatológica</option>
+                                    <option value="Procedimiento Estético">Procedimiento de Medicina Estética</option>
+                                    <option value="Control / Seguimiento">Control / Evaluación Evolutiva</option>
+                                </select>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label small fw-bold">Motivo de Consulta <span class="text-danger">*</span></label>
+                                <input type="text" id="cons_motivo" class="form-control" placeholder="Ej: Manejo de melasma, acné inflamatorio, aplicación de toxina botulínica..." required>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label small fw-bold">Enfermedad Actual / Evolución</label>
+                                <textarea id="cons_ea" class="form-control" rows="2" placeholder="Descripción clínica del cuadro cutáneo o requerimiento estético..."></textarea>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold">Lesiones Elementales</label>
+                                <input type="text" id="cons_lesiones" class="form-control" placeholder="Máculas, pápulas, comedones, ritides...">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold">Zonas Anatómicas</label>
+                                <input type="text" id="cons_zonas" class="form-control" placeholder="Frente, glabela, malar, peribucal, cuello...">
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label small fw-bold">Examen Dermatoscópico / Luz de Wood (Opcional)</label>
+                                <input type="text" id="cons_dermatoscopia" class="form-control" placeholder="Hallazgos a la dermatoscopia...">
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label small fw-bold">Diagnóstico(s) Dermo-Estético <span class="text-danger">*</span></label>
+                                <textarea id="cons_diagnosticos" class="form-control" rows="2" placeholder="Diagnóstico definitivo o impresión diagnóstica" required></textarea>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold text-derma">Procedimiento Realizado Hoy</label>
+                                <input type="text" id="cons_procedimiento" class="form-control" placeholder="Ej: Toxina Botulínica, Ác. Hialurónico, Peeling, PRP...">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold text-derma">Producto, Lote y Unidades / ml</label>
+                                <input type="text" id="cons_lote" class="form-control" placeholder="Ej: 50 UI Toxina (Frente 14U, Glabela 20U) - Lote #...">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Rutina de Skincare Día y Noche -->
+                    <div class="card-derma p-4">
+                        <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+                            <h5 class="fw-bold text-derma mb-0"><i class="fa-solid fa-sparkles me-2"></i> 2. Plan de Skincare (Día ☀️ / Noche 🌙) y Récipe</h5>
+                            <div class="d-flex flex-wrap gap-1">
+                                <button type="button" class="btn btn-sm btn-outline-derma py-0" onclick="cargarPlantillaSkincare('melasma')">+ Melasma</button>
+                                <button type="button" class="btn btn-sm btn-outline-derma py-0" onclick="cargarPlantillaSkincare('acne')">+ Acné</button>
+                                <button type="button" class="btn btn-sm btn-outline-derma py-0" onclick="cargarPlantillaSkincare('antiaging')">+ Anti-Aging</button>
+                                <button type="button" class="btn btn-sm btn-outline-derma py-0" onclick="cargarPlantillaSkincare('rosacea')">+ Rosácea</button>
+                            </div>
+                        </div>
+
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold text-warning-emphasis"><i class="fa-solid fa-sun text-warning me-1"></i> Rutina de Día (AM)</label>
+                                <textarea id="cons_rutina_dia" class="form-control small" rows="5" placeholder="1. Limpiador&#10;2. Antioxidante / Sérum&#10;3. Hidratante&#10;4. Protector Solar SPF 50+"></textarea>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold text-derma"><i class="fa-solid fa-moon me-1"></i> Rutina de Noche (PM)</label>
+                                <textarea id="cons_rutina_noche" class="form-control small" rows="5" placeholder="1. Doble Limpieza&#10;2. Activo Nocturno (Retinoide / Despigmentante)&#10;3. Reparador / Ceramidas"></textarea>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label small fw-bold">Rp. / Tratamiento Farmacológico Oral o Tópico Específico</label>
+                                <textarea id="cons_recipe" class="form-control font-monospace small" rows="3" placeholder="Medicamentos con dosis, horario y duración..."></textarea>
+                            </div>
+                            <div class="col-12">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <label class="form-label small fw-bold mb-0">Indicaciones y Cuidados Post-Procedimiento</label>
+                                    <div class="d-flex gap-1">
+                                        <button type="button" class="badge bg-light text-dark border" onclick="cargarPlantillaSkincare('post_toxina')">Post-Toxina</button>
+                                        <button type="button" class="badge bg-light text-dark border" onclick="cargarPlantillaSkincare('post_relleno')">Post-Relleno</button>
+                                    </div>
+                                </div>
+                                <textarea id="cons_cuidados_post" class="form-control small" rows="3" placeholder="Cuidados posteriores al procedimiento..."></textarea>
+                            </div>
+                            <div class="col-md-7">
+                                <label class="form-label small fw-bold">Orden de Laboratorio / Perfil Paraclínico</label>
+                                <input type="text" id="cons_laboratorio" class="form-control" placeholder="Ej: Perfil hepático, lipídico, tiroideo, hormonal...">
+                            </div>
+                            <div class="col-md-5">
+                                <label class="form-label small fw-bold">Próxima Cita Control</label>
+                                <input type="date" id="cons_proxima" class="form-control">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Columna Derecha: Mapa Facial Interactivo para iPad / Apple Pencil -->
+                <div class="col-lg-5">
+                    <div class="card-derma p-4 sticky-top" style="top: 80px;">
+                        <h5 class="fw-bold text-derma mb-1"><i class="fa-solid fa-pen-nib me-2"></i> Mapa Facial Interactivo (Apple Pencil / Touch)</h5>
+                        <p class="small text-muted mb-3">Toque o dibuje sobre el esquema para marcar puntos de toxina, rellenos o lesiones.</p>
+
+                        <!-- Selector de Marcadores Clínicos -->
+                        <div class="d-flex flex-wrap gap-1 mb-3">
+                            <button type="button" class="btn btn-sm btn-pincel-mapa active border-dark" style="background:#ede9fe;color:#6d28d9;font-weight:600;" onclick="seleccionarPincelMapa('#7c3aed', 'Toxina Botulínica', this)">
+                                ● Toxina
+                            </button>
+                            <button type="button" class="btn btn-sm btn-pincel-mapa" style="background:#e0f2fe;color:#0284c7;font-weight:600;" onclick="seleccionarPincelMapa('#0284c7', 'Ác. Hialurónico', this)">
+                                ● Relleno / AH
+                            </button>
+                            <button type="button" class="btn btn-sm btn-pincel-mapa" style="background:#fee2e2;color:#dc2626;font-weight:600;" onclick="seleccionarPincelMapa('#dc2626', 'Lesión / Lunar', this)">
+                                ● Lesión
+                            </button>
+                            <button type="button" class="btn btn-sm btn-pincel-mapa" style="background:#fef3c7;color:#d97706;font-weight:600;" onclick="seleccionarPincelMapa('#d97706', 'Mancha / Melasma', this)">
+                                ● Melasma
+                            </button>
+                        </div>
+
+                        <div class="face-map-container mb-3">
+                            <canvas id="faceMapCanvas" width="380" height="420"></canvas>
+                        </div>
+
+                        <div class="d-flex justify-content-between mb-4">
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="deshacerTrazoMapa()">
+                                <i class="fa-solid fa-rotate-left me-1"></i> Deshacer Punto
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-danger" onclick="limpiarMapaFacial()">
+                                <i class="fa-solid fa-eraser me-1"></i> Limpiar Mapa
+                            </button>
+                        </div>
+
+                        <button type="submit" class="btn btn-derma btn-lg w-100 fw-bold">
+                            <i class="fa-solid fa-floppy-disk me-1"></i> Guardar Consulta y Generar Receta
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </section>
+
+    <!-- ==================== VISTA 6: NUEVO EGRESO / REPOSO ==================== -->
+    <section id="view-nuevo-egreso" class="view-section" style="display: none;">
+        <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
+            <div>
+                <h3 class="fw-bold mb-0"><i class="fa-solid fa-file-medical text-derma me-2"></i> Egreso Clínico y Constancia de Reposo</h3>
+                <div class="small text-muted" id="egBannerNombre"></div>
+            </div>
+            <button class="btn btn-outline-secondary btn-sm" onclick="navegarA('historia', currentPatientId)">Volver</button>
+        </div>
+
+        <form id="formEgreso" onsubmit="guardarEgreso(event)">
+            <input type="hidden" id="eg_paciente_id">
+            <div class="card-derma p-4">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold">Fecha de Egreso</label>
+                        <input type="date" id="eg_fecha" class="form-control" required>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold">Tipo de Atención</label>
+                        <select id="eg_tipo_atencion" class="form-select">
+                            <option value="Procedimiento Ambulatorio">Procedimiento Estético / Dermatológico Ambulatorio</option>
+                            <option value="Cirugía Dermatológica Menor">Cirugía Dermatológica Menor / Biopsia</option>
+                            <option value="Consulta Externa">Consulta Externa</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold">Conducta de Egreso</label>
+                        <select id="eg_conducta" class="form-select" required>
+                            <option value="Alta Médica por Evolución Satisfactoria">Alta Médica por Evolución Satisfactoria</option>
+                            <option value="Control Ambulatorio Programado">Control Ambulatorio Programado</option>
+                            <option value="Referencia a Especialidad">Referencia a Especialidad</option>
+                        </select>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label small fw-bold">Diagnóstico de Egreso <span class="text-danger">*</span></label>
+                        <input type="text" id="eg_diagnosticos" class="form-control" required>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label small fw-bold">Nota de Egreso / Resumen del Procedimiento <span class="text-danger">*</span></label>
+                        <textarea id="eg_nota" class="form-control" rows="4" required></textarea>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold">Comentarios de Uso Interno (Confidencial)</label>
+                        <textarea id="eg_internos" class="form-control" rows="2" placeholder="Solo visible para la Dra. Doris Romero"></textarea>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold">Tratamiento y Cuidados al Egreso</label>
+                        <textarea id="eg_plan" class="form-control" rows="2"></textarea>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-check form-switch mt-2">
+                            <input class="form-check-input" type="checkbox" id="eg_reposo_switch">
+                            <label class="form-check-label fw-bold small" for="eg_reposo_switch">Amerita Reposo Médico</label>
+                        </div>
+                        <select id="eg_reposo_dias" class="form-select form-select-sm mt-2">
+                            <option value="">Seleccione días de reposo...</option>
+                            <option value="2">2 Días</option>
+                            <option value="3">3 Días</option>
+                            <option value="5">5 Días</option>
+                            <option value="7">7 Días</option>
+                            <option value="15">15 Días</option>
+                        </select>
+                    </div>
+                    <div class="col-12 text-end">
+                        <button type="submit" class="btn btn-derma px-4">Guardar Egreso</button>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </section>
+
+    <!-- ==================== VISTA 7: AGENDA DE CITAS ==================== -->
+    <section id="view-citas" class="view-section" style="display: none;">
+        <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+            <div>
+                <h3 class="fw-bold mb-0"><i class="fa-solid fa-calendar-check text-derma me-2"></i> Agenda de Citas y Controles</h3>
+                <p class="text-muted small mb-0">Agendamiento rápido de pacientes de WhatsApp y pacientes registrados</p>
+            </div>
+            <button class="btn btn-derma" data-bs-toggle="modal" data-bs-target="#modalAgendarCita">
+                <i class="fa-solid fa-calendar-plus me-1"></i> Agendar Cita
+            </button>
+        </div>
+
+        <div class="card-derma overflow-hidden">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light small text-uppercase text-muted">
+                        <tr>
+                            <th class="ps-3">Fecha y Hora</th>
+                            <th>Paciente</th>
+                            <th>Tipo</th>
+                            <th>Estado</th>
+                            <th>Recordar por WhatsApp</th>
+                            <th class="text-end pe-3">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tablaCitasBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    <!-- ==================== VISTA 8: COPILOTO IA DERMATOLÓGICO ==================== -->
+    <section id="view-copiloto-ia" class="view-section" style="display: none;">
+        <div class="card-derma p-4 mb-4">
+            <h3 class="fw-bold text-derma mb-1"><i class="fa-solid fa-wand-magic-sparkles me-2"></i> Copiloto IA Dermo-Estético (Google Gemini)</h3>
+            <p class="text-muted small mb-3">Consulte formulaciones magistrales, protocolos de peeling, dosis de isotretinoína o interacciones farmacológicas.</p>
+            <div class="input-group mb-3">
+                <input type="text" id="iaPromptInput" class="form-control form-control-lg" placeholder="Ej: Sugiere fórmula magistral despigmentante para paciente Fototipo IV con melasma resistente...">
+                <button class="btn btn-derma px-4" onclick="enviarPreguntaCopiloto()"><i class="fa-solid fa-paper-plane me-1"></i> Consultar IA</button>
+            </div>
+            <div id="iaRespuestaBox"></div>
+        </div>
+    </section>
+
+    <!-- ==================== VISTA 9: IMPRESIÓN Y EXPORTACIÓN A PDF ==================== -->
+    <section id="view-print" class="view-section" style="display: none;">
+        <div class="card-derma p-3 mb-4 no-print d-flex flex-wrap justify-content-between align-items-center gap-2">
+            <button id="btnVolverDePrint" class="btn btn-outline-secondary btn-sm">
+                <i class="fa-solid fa-arrow-left me-1"></i> Volver al Expediente
+            </button>
+            <div class="d-flex flex-wrap gap-2">
+                <button class="btn btn-outline-derma btn-sm" onclick="enviarDocumentoActualPorCorreo()">
+                    <i class="fa-solid fa-envelope me-1"></i> Enviar por Correo al Paciente
+                </button>
+                <button class="btn btn-derma btn-sm" onclick="exportarHojasAPDF('DermaSys_Dra_Doris_Romero_Informe')">
+                    <i class="fa-solid fa-file-arrow-down me-1"></i> Descargar PDF Directo
+                </button>
+                <button class="btn btn-secondary btn-sm" onclick="window.print()">
+                    <i class="fa-solid fa-print me-1"></i> Imprimir / Guardar como PDF
+                </button>
+            </div>
+        </div>
+        <div id="printSheetsContainer"></div>
+    </section>
+
+</main>
+
+<!-- MODAL: SUBIR FOTO EVOLUTIVA (CÁMARA IPAD DIRECTA) -->
+<div class="modal fade" id="modalSubirFoto" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header text-white" style="background: #1e1b4b;">
+                <h5 class="modal-title fw-bold"><i class="fa-solid fa-camera text-derma me-2"></i> Capturar / Subir Fotografía Evolutiva</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="formSubirFoto" onsubmit="subirFotoEvolutiva(event)">
+                <div class="modal-body p-4">
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label small fw-bold">Etapa</label>
+                            <select id="foto_etapa" class="form-select">
+                                <option value="Antes (Inicial)">Antes (Inicial)</option>
+                                <option value="Control Intermedio">Control Intermedio</option>
+                                <option value="Después (Resultado)">Después (Resultado)</option>
+                                <option value="Estudio / Biopsia">Estudio / Biopsia / Lab</option>
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small fw-bold">Zona Anatómica</label>
+                            <select id="foto_zona" class="form-select">
+                                <option value="Rostro Frontal">Rostro Frontal</option>
+                                <option value="Perfil Derecho">Perfil Derecho</option>
+                                <option value="Perfil Izquierdo">Perfil Izquierdo</option>
+                                <option value="Tercio Superior / Glabela">Tercio Superior / Glabela</option>
+                                <option value="Región Malar / Mejillas">Región Malar / Mejillas</option>
+                                <option value="Labios / Peribucal">Labios / Peribucal</option>
+                                <option value="Corporal / Dermatoscopia">Corporal / Dermatoscopia</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Título de la Toma <span class="text-danger">*</span></label>
+                        <input type="text" id="foto_titulo" class="form-control" placeholder="Ej: Día 0 Pre-Peeling / Día 14 Post-Toxina" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Fecha</label>
+                        <input type="date" id="foto_fecha" class="form-control" value="2026-11-02" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Tomar con Cámara del iPad o Seleccionar Foto <span class="text-danger">*</span></label>
+                        <input type="file" id="foto_archivo" class="form-control" accept="image/*" required>
+                        <div class="form-text small">El sistema comprime automáticamente la foto a ~150 KB sin perder nitidez clínica.</div>
+                    </div>
+                    <div class="mb-0">
+                        <label class="form-label small fw-bold">Notas / Parámetros</label>
+                        <input type="text" id="foto_notas" class="form-control" placeholder="Iluminación, filtro o notas clínicas">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-derma">Guardar Fotografía</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: AGENDAR CITA (PACIENTE NUEVO WHATSAPP vs EXISTENTE) -->
+<div class="modal fade" id="modalAgendarCita" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header text-white" style="background: #1e1b4b;">
+                <h5 class="modal-title fw-bold"><i class="fa-solid fa-calendar-plus me-2"></i> Agendar Cita Dermo-Estética</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <ul class="nav nav-pills nav-fill mb-3 bg-light p-1 rounded border">
+                    <li class="nav-item">
+                        <button class="nav-link active small fw-bold" data-bs-toggle="pill" data-bs-target="#tabCitaNuevo" type="button">+ Paciente Nuevo (WhatsApp)</button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link small fw-bold" data-bs-toggle="pill" data-bs-target="#tabCitaExistente" type="button">Paciente Registrado</button>
+                    </li>
+                </ul>
+
+                <div class="tab-content">
+                    <div class="tab-pane fade show active" id="tabCitaNuevo">
+                        <form onsubmit="guardarCitaExpress(event)">
+                            <div class="mb-2">
+                                <label class="form-label small fw-bold">Nombre y Apellido <span class="text-danger">*</span></label>
+                                <input type="text" id="cita_exp_nombre" class="form-control" required>
+                            </div>
+                            <div class="row g-2 mb-2">
+                                <div class="col-6">
+                                    <label class="form-label small fw-bold">Teléfono / WhatsApp <span class="text-danger">*</span></label>
+                                    <input type="text" id="cita_exp_tel" class="form-control" required>
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label small fw-bold">Cédula (Opcional)</label>
+                                    <input type="text" id="cita_exp_cedula" class="form-control" placeholder="Vacío = Provisional">
+                                </div>
+                            </div>
+                            <div class="row g-2 mb-2">
+                                <div class="col-6">
+                                    <label class="form-label small fw-bold">Fecha <span class="text-danger">*</span></label>
+                                    <input type="date" id="cita_exp_fecha" class="form-control" required>
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label small fw-bold">Hora</label>
+                                    <input type="time" id="cita_exp_hora" class="form-control">
+                                </div>
+                            </div>
+                            <div class="mb-2">
+                                <label class="form-label small fw-bold">Tipo de Cita</label>
+                                <select id="cita_exp_tipo" class="form-select">
+                                    <option value="Primera Consulta Dermatológica">Primera Consulta Dermatológica</option>
+                                    <option value="Evaluación Medicina Estética">Evaluación Medicina Estética</option>
+                                    <option value="Procedimiento Estético">Procedimiento Estético</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold">Motivo</label>
+                                <input type="text" id="cita_exp_notas" class="form-control">
+                            </div>
+                            <button type="submit" class="btn btn-derma w-100">Registrar y Agendar Cita</button>
+                        </form>
+                    </div>
+
+                    <div class="tab-pane fade" id="tabCitaExistente">
+                        <form onsubmit="guardarCitaExistente(event)">
+                            <div class="mb-2">
+                                <label class="form-label small fw-bold">Paciente <span class="text-danger">*</span></label>
+                                <select id="cita_paciente_existente" class="form-select" required></select>
+                            </div>
+                            <div class="row g-2 mb-2">
+                                <div class="col-6">
+                                    <label class="form-label small fw-bold">Fecha <span class="text-danger">*</span></label>
+                                    <input type="date" id="cita_ex_fecha" class="form-control" required>
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label small fw-bold">Hora</label>
+                                    <input type="time" id="cita_ex_hora" class="form-control">
+                                </div>
+                            </div>
+                            <div class="mb-2">
+                                <label class="form-label small fw-bold">Tipo de Cita</label>
+                                <select id="cita_ex_tipo" class="form-select">
+                                    <option value="Control / Retoque (14 días)">Control / Retoque (14 días)</option>
+                                    <option value="Procedimiento Estético">Procedimiento Estético</option>
+                                    <option value="Control Dermatológico">Control Dermatológico</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold">Notas</label>
+                                <input type="text" id="cita_ex_notas" class="form-control">
+                            </div>
+                            <button type="submit" class="btn btn-derma w-100">Guardar Cita</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: CONECTAR NUBE SUPABASE Y CORREO GMAIL -->
+<div class="modal fade" id="modalConfigSupabase" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header text-white" style="background: #1e1b4b;">
+                <h5 class="modal-title fw-bold"><i class="fa-solid fa-cloud text-derma me-2"></i> Configuración Nube (Supabase) y Correo (Gmail)</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form onsubmit="guardarConfigSupabase(event)">
+                <div class="modal-body p-4">
+                    <h6 class="fw-bold text-derma mb-2"><i class="fa-solid fa-database me-1"></i> 1. Sincronización Nube Supabase (iPad + Mac)</h6>
+                    <p class="small text-muted mb-2">
+                        Pegue aquí la URL y la Anon Key de su proyecto gratuito de <strong>Supabase</strong>. Si lo deja vacío, funciona en modo local de prueba.
+                    </p>
+                    <div class="mb-2">
+                        <label class="form-label small fw-bold">Supabase Project URL</label>
+                        <input type="url" id="sb_url_input" class="form-control form-control-sm font-monospace" placeholder="https://xxxxxxxxxxxx.supabase.co">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Supabase Anon Public Key</label>
+                        <input type="text" id="sb_key_input" class="form-control form-control-sm font-monospace" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI...">
+                    </div>
+
+                    <hr>
+                    <h6 class="fw-bold text-derma mb-2"><i class="fa-solid fa-envelope-circle-check me-1"></i> 2. Correo Institucional DermaSys (Gmail SMTP)</h6>
+                    <p class="small text-muted mb-2">
+                        Permite enviar Informes Dermo-Estéticos, Rutinas de Skincare y Altas por correo en 1 clic (igual que en los otros sistemas).
+                    </p>
+                    <div class="mb-2">
+                        <label class="form-label small fw-bold">Correo Gmail del Sistema</label>
+                        <input type="email" id="smtp_email_input" class="form-control form-control-sm" placeholder="Ej: dermasys.draromero@gmail.com">
+                    </div>
+                    <div class="mb-0">
+                        <label class="form-label small fw-bold">Contraseña de Aplicación Google (16 letras)</label>
+                        <input type="password" id="smtp_pass_input" class="form-control form-control-sm font-monospace" placeholder="xxxx xxxx xxxx xxxx">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cerrar</button>
+                    <button type="submit" class="btn btn-derma btn-sm">Guardar Configuración</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<footer class="py-3 bg-white border-top text-muted small mt-auto no-print">
+    <div class="container-fluid d-flex flex-wrap justify-content-between align-items-center px-4">
+        <div><strong>DermaSys</strong> &bull; Dra. Doris Romero &mdash; Medicina Estética y Dermatología (M.P.P.S: 131642 | C.M: 13750)</div>
+        <div>Optimizado para iPadOS & macOS &copy; 2026</div>
+    </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="js/db.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

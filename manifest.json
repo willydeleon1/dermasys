@@ -1,0 +1,18 @@
+{
+  "name": "DermaSys | Dra. Doris Romero - Medicina Estética y Dermatología",
+  "short_name": "DermaSys",
+  "description": "DermaSys - Sistema Clínico Dermo-Estético para iPad y Mac - Dra. Doris Romero (M.P.P.S: 131642 | C.M: 13750)",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#1e1b4b",
+  "theme_color": "#6d28d9",
+  "icons": [
+    {
+      "src": "img/logo_dr.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

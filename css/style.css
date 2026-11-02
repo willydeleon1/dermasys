@@ -1,0 +1,314 @@
+/* ============================================================================
+   DERMA-DR | Dra. Doris Romero - Medicina Estética y Dermatología
+   Paleta Opción C: Lavanda / Violeta Clínico Moderno + Azul Índigo Profundo
+   Optimizado para iPad (Touch / Apple Pencil) y Mac
+   ============================================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,400&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+
+:root {
+    --primary: #6d28d9;           /* Violeta Clínico Principal */
+    --primary-hover: #5b21b6;
+    --primary-light: #ede9fe;     /* Lavanda Suave */
+    --primary-subtle: #f5f3ff;    /* Fondo Lavanda Ultra Sutil */
+    --accent-lavender: #8b5cf6;   /* Lavanda Brillante */
+    --deep-navy: #1e1b4b;         /* Azul Índigo Profundo */
+    --deep-slate: #0f172a;
+    --bg-main: #f8f7fc;
+    --card-bg: #ffffff;
+    --border-color: #e2e8f0;
+    --text-dark: #1e1b4b;
+    --text-muted: #64748b;
+    --radius-md: 14px;
+    --radius-lg: 18px;
+}
+
+body {
+    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    background-color: var(--bg-main);
+    color: var(--text-dark);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.serif-brand {
+    font-family: 'Cormorant Garamond', Georgia, serif;
+}
+
+/* Navbar Superior Estilo Mac / iPad Pro */
+.navbar-derma {
+    background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 60%, #2e1065 100%);
+    border-bottom: 2px solid var(--accent-lavender);
+    padding: 0.7rem 1.25rem;
+    box-shadow: 0 4px 20px rgba(30, 27, 75, 0.18);
+}
+
+.monogram-badge {
+    width: 46px;
+    height: 46px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.25), rgba(30, 27, 75, 0.8));
+    border: 1.5px solid rgba(196, 181, 253, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-size: 1.55rem;
+    font-weight: 600;
+    color: #f5f3ff;
+    letter-spacing: -2px;
+    box-shadow: 0 0 15px rgba(139, 92, 246, 0.35);
+}
+
+.navbar-derma .nav-link {
+    color: #cbd5e1 !important;
+    font-weight: 600;
+    font-size: 0.9rem;
+    padding: 0.55rem 0.95rem !important;
+    border-radius: 10px;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+}
+
+.navbar-derma .nav-link:hover,
+.navbar-derma .nav-link.active {
+    background: rgba(139, 92, 246, 0.22);
+    color: #ffffff !important;
+    box-shadow: inset 0 0 0 1px rgba(196, 181, 253, 0.35);
+}
+
+/* Botones Personalizados Lavanda / Violeta */
+.btn-derma {
+    background: linear-gradient(135deg, #6d28d9, #7c3aed);
+    color: #ffffff !important;
+    border: none;
+    border-radius: 10px;
+    font-weight: 600;
+    padding: 0.55rem 1.15rem;
+    box-shadow: 0 4px 12px rgba(109, 40, 217, 0.25);
+    transition: all 0.2s ease;
+}
+
+.btn-derma:hover {
+    background: linear-gradient(135deg, #5b21b6, #6d28d9);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(109, 40, 217, 0.35);
+}
+
+.btn-outline-derma {
+    color: var(--primary);
+    border: 1.5px solid var(--primary);
+    background: transparent;
+    border-radius: 10px;
+    font-weight: 600;
+}
+
+.btn-outline-derma:hover {
+    background: var(--primary);
+    color: #ffffff !important;
+}
+
+.bg-derma {
+    background-color: var(--primary) !important;
+}
+
+.bg-derma-subtle {
+    background-color: var(--primary-subtle) !important;
+    border-color: #ddd6fe !important;
+}
+
+.text-derma {
+    color: var(--primary) !important;
+}
+
+/* Tarjetas Clínicas */
+.card-derma {
+    background: var(--card-bg);
+    border: 1px solid #e9e5f5;
+    border-radius: var(--radius-md);
+    box-shadow: 0 4px 12px rgba(30, 27, 75, 0.04);
+    transition: all 0.2s ease;
+}
+
+.metric-card {
+    border-radius: var(--radius-md);
+    padding: 1.25rem;
+    background: #ffffff;
+    border: 1px solid #e9e5f5;
+    border-left: 4px solid var(--primary);
+    box-shadow: 0 4px 12px rgba(30, 27, 75, 0.04);
+}
+
+.metric-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    background: var(--primary-light);
+    color: var(--primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.35rem;
+}
+
+/* Selector Visual de Fototipo de Fitzpatrick */
+.fitzpatrick-option {
+    cursor: pointer;
+    border: 2px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 8px 10px;
+    text-align: center;
+    transition: all 0.15s ease;
+    user-select: none;
+}
+
+.fitzpatrick-option.active {
+    border-color: var(--primary);
+    background-color: var(--primary-subtle);
+    box-shadow: 0 0 0 2px rgba(109, 40, 217, 0.2);
+}
+
+.skin-swatch {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    margin: 0 auto 4px auto;
+    border: 1px solid rgba(0,0,0,0.15);
+}
+
+/* Lienzo Interactivo de Mapa Facial (iPad / Apple Pencil) */
+.face-map-container {
+    position: relative;
+    width: 100%;
+    max-width: 440px;
+    margin: 0 auto;
+    background: #ffffff;
+    border: 2px solid #ddd6fe;
+    border-radius: 16px;
+    overflow: hidden;
+    touch-action: none; /* Crítico para dibujar fluido con el Apple Pencil en iPad */
+}
+
+#faceMapCanvas {
+    width: 100%;
+    height: auto;
+    display: block;
+    cursor: crosshair;
+}
+
+/* Comparador Interactivo Antes y Después */
+.ba-slider-wrapper {
+    position: relative;
+    width: 100%;
+    height: 360px;
+    border-radius: 14px;
+    overflow: hidden;
+    border: 2px solid #ddd6fe;
+    background: #0f172a;
+    user-select: none;
+}
+
+.ba-img {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    background: #0f172a;
+}
+
+.ba-Overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: 50%;
+    overflow: hidden;
+    border-right: 3px solid #a78bfa;
+}
+
+/* Hojas Médicas Imprimibles / PDF (Informe, Skincare Día/Noche, Reposo) */
+.medical-sheet {
+    background: #ffffff;
+    border: 1px solid #d8b4fe;
+    border-radius: 10px;
+    box-shadow: 0 6px 18px rgba(30, 27, 75, 0.07);
+    padding: 36px 44px;
+    margin-bottom: 28px;
+    max-width: 880px;
+    margin-left: auto;
+    margin-right: auto;
+    position: relative;
+    font-size: 13.5px;
+    line-height: 1.55;
+    color: #1e1b4b;
+}
+
+.sheet-header {
+    border-bottom: 2px solid #6d28d9;
+    padding-bottom: 14px;
+    margin-bottom: 20px;
+}
+
+.sheet-footer {
+    margin-top: 32px;
+    padding-top: 14px;
+    border-top: 1px dashed #cbd5e1;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+}
+
+/* Reglas Exactas para Impresión y Exportación a PDF */
+@media print {
+    @page {
+        size: letter portrait;
+        margin: 10mm 12mm;
+    }
+
+    html, body {
+        display: block !important;
+        background: #ffffff !important;
+        color: #000000 !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+
+    .no-print, .navbar-derma, footer, .modal {
+        display: none !important;
+    }
+
+    .view-section:not(#view-print) {
+        display: none !important;
+    }
+
+    #view-print {
+        display: block !important;
+    }
+
+    .medical-sheet {
+        display: block !important;
+        border: none !important;
+        box-shadow: none !important;
+        padding: 0 0 15px 0 !important;
+        margin: 0 !important;
+        max-width: 100% !important;
+        width: 100% !important;
+        page-break-after: always !important;
+        break-after: page !important;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+    }
+
+    .medical-sheet:last-of-type {
+        page-break-after: avoid !important;
+        break-after: avoid !important;
+    }
+}
