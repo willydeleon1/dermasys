@@ -862,7 +862,7 @@ async function verDocumentoConsulta(consultaId) {
         </div>
 
         <!-- HOJA 2: RUTINA DE SKINCARE (DÍA / NOCHE) Y RÉCIPE -->
-        <div class="medical-sheet page-break-sheet">
+        <div class="medical-sheet">
             ${membrete}
             <h4 class="text-center fw-bold mb-3" style="color:#6d28d9;letter-spacing:1px;">PLAN PERSONALIZADO DE SKINCARE & RÉCIPE</h4>
             <div class="p-2 mb-3 bg-light rounded border small d-flex justify-content-between">
@@ -904,66 +904,323 @@ async function verDocumentoConsulta(consultaId) {
     `;
 
     currentPrintPatient = p;
+    window.currentPrintDoc = { tipo: 'consulta', c, p };
     currentPrintSubject = `Informe Dermo-Estético y Rutina Skincare (${formatearFecha(c.fecha_consulta)}) | Dra. Doris Romero`;
     document.getElementById('printSheetsContainer').innerHTML = htmlSheets;
     document.getElementById('btnVolverDePrint').onclick = () => navegarA('historia', p.id);
     navegarA('print');
 }
 
-async function generarInstanciaPDFPorHojas(container) {
-    const sheets = Array.from(container.querySelectorAll('.medical-sheet'));
-    const targets = sheets.length > 0 ? sheets : [container];
+function dibujarMembreteVectorPDF(pdf) {
+    // Marco exterior sutil de la hoja
+    pdf.setDrawColor(216, 180, 254);
+    pdf.setLineWidth(0.35);
+    pdf.roundedRect(10, 8, 195.9, 263, 3, 3, 'S');
 
-    // Crear instancia limpia de jsPDF en formato Carta (215.9 x 279.4 mm)
+    // Nombre e Identidad Dra. Doris Romero
+    pdf.setFont('times', 'bold');
+    pdf.setFontSize(17);
+    pdf.setTextColor(30, 27, 75);
+    pdf.text('DRA. DORIS ROMERO', 15, 17);
+
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(9.5);
+    pdf.setTextColor(109, 40, 217);
+    pdf.text('MEDICINA ESTETICA Y DERMATOLOGIA', 15, 22.5);
+
+    pdf.setFont('helvetica', 'normal');
+    pdf.setFontSize(8.5);
+    pdf.setTextColor(100, 116, 139);
+    pdf.text('M.P.P.S: 131642  •  C.M: 13750', 15, 27);
+
+    // Insignia Monograma DR a la derecha
+    pdf.setFillColor(30, 27, 75);
+    pdf.setDrawColor(167, 139, 250);
+    pdf.setLineWidth(0.5);
+    pdf.roundedRect(184, 11, 16, 16, 3, 3, 'FD');
+    pdf.setFont('times', 'bold');
+    pdf.setFontSize(15);
+    pdf.setTextColor(245, 243, 255);
+    pdf.text('DR', 192, 21, { align: 'center' });
+
+    // Línea divisoria violeta
+    pdf.setDrawColor(109, 40, 217);
+    pdf.setLineWidth(0.6);
+    pdf.line(15, 31, 200, 31);
+}
+
+function dibujarPieFirmaVectorPDF(pdf, fechaStr) {
+    pdf.setDrawColor(203, 213, 225);
+    pdf.setLineWidth(0.3);
+    pdf.line(15, 251, 200, 251);
+
+    pdf.setFont('helvetica', 'normal');
+    pdf.setFontSize(8);
+    pdf.setTextColor(100, 116, 139);
+    pdf.text(`DermaSys  •  Dra. Doris Romero  •  Emitido el ${fechaStr}`, 15, 259);
+
+    pdf.setDrawColor(30, 27, 75);
+    pdf.setLineWidth(0.4);
+    pdf.line(136, 256, 200, 256);
+
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(8.5);
+    pdf.setTextColor(30, 27, 75);
+    pdf.text('Dra. Doris Romero', 168, 260.5, { align: 'center' });
+
+    pdf.setFont('helvetica', 'normal');
+    pdf.setFontSize(7.5);
+    pdf.setTextColor(100, 116, 139);
+    pdf.text('Medicina Estetica | M.P.P.S: 131642 - C.M: 13750', 168, 264.5, { align: 'center' });
+}
+
+function dibujarBloqueSeccionPDF(pdf, titulo, contenido, y, bgRGB = [255, 255, 255], borderRGB = [226, 232, 240], boldText = false) {
+    if (!contenido) return y;
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(8.5);
+    pdf.setTextColor(109, 40, 217);
+    pdf.text(String(titulo).toUpperCase(), 15, y);
+    y += 2.5;
+
+    pdf.setFont('helvetica', boldText ? 'bold' : 'normal');
+    pdf.setFontSize(9);
+    const lines = pdf.splitTextToSize(String(contenido), 178);
+    const boxH = Math.max(9, lines.length * 4.4 + 4.5);
+
+    pdf.setFillColor(bgRGB[0], bgRGB[1], bgRGB[2]);
+    pdf.setDrawColor(borderRGB[0], borderRGB[1], borderRGB[2]);
+    pdf.setLineWidth(0.3);
+    pdf.roundedRect(15, y, 185, boxH, 2, 2, 'FD');
+
+    pdf.setTextColor(30, 41, 59);
+    pdf.text(lines, 18, y + 5);
+    return y + boxH + 5.5;
+}
+
+async function generarInstanciaPDFPorHojas() {
     const dummy = document.createElement('div');
-    dummy.style.width = '1px';
-    dummy.style.height = '1px';
     const pdf = await html2pdf()
         .set({ jsPDF: { unit: 'mm', format: 'letter', orientation: 'portrait' } })
         .from(dummy)
         .toPdf()
         .get('pdf');
 
-    // Eliminar cualquier página en blanco adicional que html2pdf haya pre-creado
+    // Crear una página 100% limpia y eliminar las pre-creadas por html2pdf
+    pdf.addPage();
     while (pdf.internal.getNumberOfPages() > 1) {
-        pdf.deletePage(pdf.internal.getNumberOfPages());
+        pdf.deletePage(1);
     }
     pdf.setPage(1);
 
-    const pageW = pdf.internal.pageSize.getWidth();   // 215.9 mm
-    const pageH = pdf.internal.pageSize.getHeight();  // 279.4 mm
-    const margin = 10;
-    const maxW = pageW - margin * 2;
-    const maxH = pageH - margin * 2;
+    const docInfo = window.currentPrintDoc || {};
 
-    for (let i = 0; i < targets.length; i++) {
-        if (i > 0) {
-            pdf.addPage();
-        }
-        const canvas = await html2pdf()
-            .set({
-                html2canvas: {
-                    scale: 2,
-                    useCORS: true,
-                    backgroundColor: '#ffffff',
-                    scrollY: 0
-                }
-            })
-            .from(targets[i])
-            .toContainer()
-            .toCanvas()
-            .get('canvas');
+    if (docInfo.tipo === 'consulta') {
+        const { c, p } = docInfo;
+        const fechaFmt = formatearFecha(c.fecha_consulta);
 
-        const imgData = canvas.toDataURL('image/jpeg', 0.96);
-        let imgW = maxW;
-        let imgH = (canvas.height * imgW) / canvas.width;
-        if (imgH > maxH) {
-            imgH = maxH;
-            imgW = (canvas.width * imgH) / canvas.height;
+        // ==================== PÁGINA 1: INFORME MÉDICO DERMO-ESTÉTICO ====================
+        dibujarMembreteVectorPDF(pdf);
+
+        pdf.setFont('helvetica', 'bold');
+        pdf.setFontSize(13);
+        pdf.setTextColor(30, 27, 75);
+        pdf.text('INFORME MEDICO DERMO-ESTETICO', 107.9, 39, { align: 'center' });
+
+        // Caja de datos del paciente
+        pdf.setFillColor(248, 250, 252);
+        pdf.setDrawColor(226, 232, 240);
+        pdf.roundedRect(15, 43, 185, 15, 2, 2, 'FD');
+
+        pdf.setFont('helvetica', 'bold');
+        pdf.setFontSize(9);
+        pdf.setTextColor(30, 41, 59);
+        pdf.text(`Paciente: ${p.nombre_apellido || ''}`, 18, 49);
+        pdf.text(`C.I: ${p.cedula || ''}`, 196, 49, { align: 'right' });
+
+        pdf.setFont('helvetica', 'normal');
+        pdf.setFontSize(8.5);
+        pdf.text(`Edad: ${p.edad || '--'} anos   |   Biotipo: ${p.biotipo_cutaneo || 'Mixta'} (Fitzpatrick ${p.fototipo_fitzpatrick || 'III'})`, 18, 55);
+        pdf.text(`Fecha: ${fechaFmt}`, 196, 55, { align: 'right' });
+
+        let y = 65;
+        const evalTexto = [c.motivo_consulta, c.enfermedad_actual].filter(Boolean).join('\n');
+        y = dibujarBloqueSeccionPDF(pdf, 'Motivo de Consulta y Evaluacion Cutanea:', evalTexto, y);
+
+        if (c.lesiones_elementales || c.examen_dermatoscopico) {
+            const hallazgos = [
+                c.lesiones_elementales ? `Lesiones: ${c.lesiones_elementales} (${c.zonas_afectadas || ''})` : '',
+                c.examen_dermatoscopico ? `Dermatoscopia: ${c.examen_dermatoscopico}` : ''
+            ].filter(Boolean).join('\n');
+            y = dibujarBloqueSeccionPDF(pdf, 'Hallazgos Clinicos / Dermatoscopia:', hallazgos, y);
         }
-        const x = (pageW - imgW) / 2;
-        const y = margin;
-        pdf.addImage(imgData, 'JPEG', x, y, imgW, imgH);
+
+        y = dibujarBloqueSeccionPDF(pdf, 'Impresion Diagnostica:', c.diagnosticos, y, [245, 243, 255], [221, 214, 254], true);
+
+        if (c.procedimiento_realizado) {
+            const procTexto = [c.procedimiento_realizado, c.producto_lote_unidades].filter(Boolean).join('\n');
+            y = dibujarBloqueSeccionPDF(pdf, 'Procedimiento Realizado en Consultorio:', procTexto, y);
+        }
+
+        if (c.mapa_facial_data && y < 205) {
+            try {
+                const imgH = Math.min(48, 244 - y);
+                const imgW = imgH * 1.33;
+                pdf.setFont('helvetica', 'bold');
+                pdf.setFontSize(8);
+                pdf.setTextColor(100, 116, 139);
+                pdf.text('Esquema / Mapa Anatomico de Tratamiento:', 107.9, y + 3, { align: 'center' });
+                pdf.addImage(c.mapa_facial_data, 'JPEG', 107.9 - imgW / 2, y + 5, imgW, imgH);
+            } catch (e) {}
+        }
+
+        dibujarPieFirmaVectorPDF(pdf, fechaFmt);
+
+        // ==================== PÁGINA 2: PLAN DE SKINCARE (DÍA / NOCHE) & RÉCIPE ====================
+        pdf.addPage();
+        dibujarMembreteVectorPDF(pdf);
+
+        pdf.setFont('helvetica', 'bold');
+        pdf.setFontSize(13);
+        pdf.setTextColor(109, 40, 217);
+        pdf.text('PLAN PERSONALIZADO DE SKINCARE & RECIPE', 107.9, 39, { align: 'center' });
+
+        // Barra paciente hoja 2
+        pdf.setFillColor(248, 250, 252);
+        pdf.setDrawColor(226, 232, 240);
+        pdf.roundedRect(15, 43, 185, 10, 2, 2, 'FD');
+        pdf.setFont('helvetica', 'bold');
+        pdf.setFontSize(9);
+        pdf.setTextColor(30, 41, 59);
+        pdf.text(`Paciente: ${p.nombre_apellido || ''} (C.I: ${p.cedula || ''})`, 18, 49.5);
+        pdf.text(`Fecha: ${fechaFmt}`, 196, 49.5, { align: 'right' });
+
+        // Cajas paralelas: RUTINA DE DÍA (AM) y RUTINA DE NOCHE (PM)
+        let y2 = 58;
+        pdf.setFont('helvetica', 'normal');
+        pdf.setFontSize(8.8);
+        const linesDia = pdf.splitTextToSize(String(c.rutina_dia || 'Seguir indicaciones habituales.'), 83);
+        const linesNoche = pdf.splitTextToSize(String(c.rutina_noche || 'Seguir indicaciones habituales.'), 83);
+        const maxLines = Math.max(linesDia.length, linesNoche.length, 4);
+        const skinBoxH = maxLines * 4.4 + 14;
+
+        // Caja Día (Izquierda - Crema Cálido)
+        pdf.setFillColor(255, 251, 235);
+        pdf.setDrawColor(253, 230, 138);
+        pdf.roundedRect(15, y2, 90, skinBoxH, 2.5, 2.5, 'FD');
+        pdf.setFont('helvetica', 'bold');
+        pdf.setFontSize(9.5);
+        pdf.setTextColor(180, 83, 9);
+        pdf.text('RUTINA DE DIA (AM)', 19, y2 + 7);
+        pdf.setFont('helvetica', 'normal');
+        pdf.setFontSize(8.8);
+        pdf.setTextColor(30, 41, 59);
+        pdf.text(linesDia, 19, y2 + 13);
+
+        // Caja Noche (Derecha - Lavanda Suave)
+        pdf.setFillColor(245, 243, 255);
+        pdf.setDrawColor(221, 214, 254);
+        pdf.roundedRect(110, y2, 90, skinBoxH, 2.5, 2.5, 'FD');
+        pdf.setFont('helvetica', 'bold');
+        pdf.setFontSize(9.5);
+        pdf.setTextColor(109, 40, 217);
+        pdf.text('RUTINA DE NOCHE (PM)', 114, y2 + 7);
+        pdf.setFont('helvetica', 'normal');
+        pdf.setFontSize(8.8);
+        pdf.setTextColor(30, 41, 59);
+        pdf.text(linesNoche, 114, y2 + 13);
+
+        y2 += skinBoxH + 7;
+
+        if (c.tratamiento_farmacologico) {
+            y2 = dibujarBloqueSeccionPDF(pdf, 'Rp. / Tratamiento Farmacologico Adicional:', c.tratamiento_farmacologico, y2);
+        }
+
+        if (c.cuidados_post_procedimiento) {
+            y2 = dibujarBloqueSeccionPDF(pdf, 'Cuidados Post-Procedimiento:', c.cuidados_post_procedimiento, y2, [248, 250, 252], [226, 232, 240]);
+        }
+
+        if (c.proxima_consulta) {
+            pdf.setFont('helvetica', 'bold');
+            pdf.setFontSize(9.5);
+            pdf.setTextColor(109, 40, 217);
+            pdf.text(`Proximo Control Pautado: ${formatearFecha(c.proxima_consulta)}`, 15, y2 + 3);
+        }
+
+        dibujarPieFirmaVectorPDF(pdf, fechaFmt);
+    } else if (docInfo.tipo === 'egreso') {
+        const { eg, p } = docInfo;
+        const fechaFmt = formatearFecha(eg.fecha_egreso);
+        dibujarMembreteVectorPDF(pdf);
+
+        pdf.setFont('helvetica', 'bold');
+        pdf.setFontSize(13);
+        pdf.setTextColor(30, 27, 75);
+        pdf.text('INFORME MEDICO DE ALTA / EGRESO', 107.9, 39, { align: 'center' });
+
+        pdf.setFillColor(248, 250, 252);
+        pdf.setDrawColor(226, 232, 240);
+        pdf.roundedRect(15, 43, 185, 10, 2, 2, 'FD');
+        pdf.setFont('helvetica', 'bold');
+        pdf.setFontSize(9);
+        pdf.setTextColor(30, 41, 59);
+        pdf.text(`Paciente: ${p.nombre_apellido || ''} (C.I: ${p.cedula || ''})`, 18, 49.5);
+        pdf.text(`Fecha: ${fechaFmt}`, 196, 49.5, { align: 'right' });
+
+        let y = 60;
+        y = dibujarBloqueSeccionPDF(pdf, 'Modalidad y Conducta:', `${eg.tipo_atencion || ''} — ${eg.conducta_egreso || ''}`, y);
+        y = dibujarBloqueSeccionPDF(pdf, 'Diagnostico(s) de Egreso:', eg.diagnosticos_egreso, y, [245, 243, 255], [221, 214, 254], true);
+        y = dibujarBloqueSeccionPDF(pdf, 'Resumen de Evolucion y Procedimiento:', eg.nota_egreso, y);
+        if (eg.plan_tratamiento_egreso) {
+            y = dibujarBloqueSeccionPDF(pdf, 'Cuidados Domiciliarios e Indicaciones de Alta:', eg.plan_tratamiento_egreso, y);
+        }
+        if (eg.reposo_medico === 'Sí') {
+            y = dibujarBloqueSeccionPDF(pdf, 'Constancia de Reposo Medico:', `Se indica reposo fisico y laboral/academico por ${eg.reposo_dias} dias continuos a partir del ${fechaFmt}.`, y, [240, 253, 244], [134, 239, 172], true);
+        }
+        dibujarPieFirmaVectorPDF(pdf, fechaFmt);
+    } else if (docInfo.tipo === 'agenda') {
+        const { citas, pacientes } = docInfo;
+        const fechaHoy = formatearFecha(new Date().toISOString().split('T')[0]);
+        dibujarMembreteVectorPDF(pdf);
+
+        pdf.setFont('helvetica', 'bold');
+        pdf.setFontSize(13);
+        pdf.setTextColor(30, 27, 75);
+        pdf.text('REPORTE DE PACIENTES AGENDADOS', 107.9, 39, { align: 'center' });
+
+        let y = 46;
+        pdf.setFillColor(30, 27, 75);
+        pdf.rect(15, y, 185, 8, 'F');
+        pdf.setFont('helvetica', 'bold');
+        pdf.setFontSize(8.5);
+        pdf.setTextColor(255, 255, 255);
+        pdf.text('FECHA / HORA', 18, y + 5.5);
+        pdf.text('PACIENTE', 56, y + 5.5);
+        pdf.text('CEDULA', 112, y + 5.5);
+        pdf.text('TELEFONO', 138, y + 5.5);
+        pdf.text('TIPO / ESTADO', 168, y + 5.5);
+        y += 8;
+
+        pdf.setFont('helvetica', 'normal');
+        pdf.setFontSize(8.2);
+        pdf.setTextColor(30, 41, 59);
+        (citas || []).forEach((c) => {
+            if (y > 240) {
+                dibujarPieFirmaVectorPDF(pdf, fechaHoy);
+                pdf.addPage();
+                dibujarMembreteVectorPDF(pdf);
+                y = 40;
+            }
+            const p = (pacientes || []).find(x => Number(x.id) === Number(c.paciente_id)) || {};
+            pdf.setDrawColor(226, 232, 240);
+            pdf.rect(15, y, 185, 7.5, 'S');
+            pdf.text(`${formatearFecha(c.fecha_cita)} ${c.hora_cita || ''}`, 18, y + 5);
+            pdf.text(String(p.nombre_apellido || '').substring(0, 28), 56, y + 5);
+            pdf.text(String(p.cedula || ''), 112, y + 5);
+            pdf.text(String(p.telefono || ''), 138, y + 5);
+            pdf.text(String(c.tipo || '').substring(0, 18), 168, y + 5);
+            y += 7.5;
+        });
+        dibujarPieFirmaVectorPDF(pdf, fechaHoy);
     }
 
     return pdf;
@@ -1142,6 +1399,7 @@ async function verDocumentoEgreso(egresoId) {
     const p = pacientes.find(x => Number(x.id) === Number(eg.paciente_id)) || {};
 
     currentPrintPatient = p;
+    window.currentPrintDoc = { tipo: 'egreso', eg, p };
     currentPrintSubject = `Informe de Alta / Reposo (${formatearFecha(eg.fecha_egreso)}) | Dra. Doris Romero`;
 
     const htmlSheet = `
@@ -1436,6 +1694,7 @@ async function exportarAgendaCitasPDF() {
             </table>
         </div>
     `;
+    window.currentPrintDoc = { tipo: 'agenda', citas, pacientes };
     document.getElementById('printSheetsContainer').innerHTML = htmlSheet;
     document.getElementById('btnVolverDePrint').onclick = () => navegarA('citas');
     navegarA('print');
