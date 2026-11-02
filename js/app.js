@@ -790,7 +790,7 @@ async function verDocumentoConsulta(consultaId) {
                 <div class="text-muted" style="font-size:0.75rem;">M.P.P.S: 131642 &bull; C.M: 13750</div>
             </div>
             <div class="text-end">
-                <img src="img/logo_dr.svg" alt="Logo DR" style="height:68px;">
+                <div style="width:56px;height:56px;border-radius:12px;background:linear-gradient(135deg,#1e1b4b,#4c1d95);border:2px solid #a78bfa;color:#f5f3ff;font-family:Georgia,serif;font-size:26px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;letter-spacing:-2px;">DR</div>
             </div>
         </div>
     `;
@@ -926,37 +926,59 @@ function exportarHojasAPDF(nombreBase = 'DermaSys_Documento') {
 async function enviarDocumentoActualPorCorreo() {
     const p = currentPrintPatient || {};
     const { value: emailDestino } = await Swal.fire({
-        title: 'Enviar Informe por Correo',
+        title: 'Enviar Informe en PDF Adjunto',
         input: 'email',
         inputLabel: `Destinatario (${p.nombre_apellido || 'Paciente'})`,
         inputValue: p.correo || '',
         inputPlaceholder: 'paciente@gmail.com',
         showCancelButton: true,
         confirmButtonColor: '#6d28d9',
-        confirmButtonText: '<i class="fa-solid fa-paper-plane me-1"></i> Enviar Ahora',
+        confirmButtonText: '<i class="fa-solid fa-paper-plane me-1"></i> Generar PDF y Enviar',
         cancelButtonText: 'Cancelar'
     });
 
     if (!emailDestino) return;
 
-    const creds = db.getCreds();
-    const htmlContent = `
-        <div style="font-family:Arial,sans-serif;max-width:720px;margin:0 auto;border:1px solid #ddd6fe;border-radius:12px;overflow:hidden;">
-            <div style="background:#1e1b4b;color:#ffffff;padding:18px 24px;">
-                <h2 style="margin:0;font-family:Georgia,serif;letter-spacing:1px;">DRA. DORIS ROMERO</h2>
-                <div style="color:#c4b5fd;font-size:12px;">Medicina Estética y Dermatología &bull; M.P.P.S: 131642 | C.M: 13750 &bull; DermaSys</div>
-            </div>
-            <div style="padding:24px;color:#1e293b;">
-                ${document.getElementById('printSheetsContainer').innerHTML}
-            </div>
-        </div>
-    `;
+    Swal.fire({ title: 'Generando archivo PDF y enviando correo...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
 
-    Swal.fire({ title: 'Enviando correo electrónico...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+    const container = document.getElementById('printSheetsContainer');
+    const nombrePac = String(p.nombre_apellido || 'Paciente').replace(/[^a-zA-Z0-9_-]/g, '_');
+    const pdfFilename = `Informe_Dra_Doris_Romero_${nombrePac}.pdf`;
 
-    // Intentar endpoint serverless de Vercel (/api/enviar-correo) y fallback local XAMPP (enviar_correo_local.php)
-    const endpoint = window.location.hostname.includes('vercel.app') ? '/api/enviar-correo' : 'enviar_correo_local.php';
+    const opt = {
+        margin: [8, 8, 8, 8],
+        filename: pdfFilename,
+        image: { type: 'jpeg', quality: 0.95 },
+        html2canvas: { scale: 1.6, useCORS: true },
+        jsPDF: { unit: 'mm', format: 'letter', orientation: 'portrait' },
+        pagebreak: { mode: ['css', 'legacy'] }
+    };
+
     try {
+        const pdfDataUri = await html2pdf().set(opt).from(container).outputPdf('datauristring');
+        const creds = db.getCreds();
+
+        const htmlContent = `
+            <div style="font-family:Arial,sans-serif;max-width:620px;margin:0 auto;border:1px solid #ddd6fe;border-radius:12px;overflow:hidden;">
+                <div style="background:#1e1b4b;color:#ffffff;padding:22px 24px;text-align:center;">
+                    <h2 style="margin:0;font-family:Georgia,serif;letter-spacing:1px;">DRA. DORIS ROMERO</h2>
+                    <div style="color:#c4b5fd;font-size:12px;margin-top:4px;">Medicina Estética y Dermatología &bull; M.P.P.S: 131642 | C.M: 13750</div>
+                </div>
+                <div style="padding:26px;color:#1e293b;line-height:1.6;">
+                    <p>Estimado(a) <strong>${esc(p.nombre_apellido || 'Paciente')}</strong>,</p>
+                    <p>Reciba un cordial saludo de parte de la <strong>Dra. Doris Romero</strong>.</p>
+                    <div style="background:#f5f3ff;border-left:4px solid #6d28d9;padding:14px 16px;border-radius:6px;margin:18px 0;">
+                        <strong>📎 Documento PDF Adjunto:</strong><br>
+                        Adjunto a este correo encontrará en formato <strong>PDF (${pdfFilename})</strong> su Informe Médico Dermo-Estético, Plan Personalizado de Skincare y Récipe para su descarga o impresión.
+                    </div>
+                    <p style="font-size:12px;color:#64748b;margin-top:24px;border-top:1px solid #e2e8f0;padding-top:12px;">
+                        Emitido a través de <strong>DermaSys</strong> &bull; Unidad de Medicina Estética y Dermatología.
+                    </p>
+                </div>
+            </div>
+        `;
+
+        const endpoint = window.location.hostname.includes('vercel.app') ? '/api/enviar-correo' : 'enviar_correo_local.php';
         const res = await fetch(endpoint, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -964,17 +986,19 @@ async function enviarDocumentoActualPorCorreo() {
                 destinatario: emailDestino,
                 asunto: currentPrintSubject,
                 html: htmlContent,
+                pdfBase64: pdfDataUri,
+                pdfFilename: pdfFilename,
                 smtpEmail: creds.smtpEmail,
                 smtpPass: creds.smtpPass
             })
         });
         const data = await res.json();
         if (data.ok) {
-            Swal.fire('¡Correo Enviado!', data.message, 'success');
+            Swal.fire('¡PDF Enviado por Correo!', data.message, 'success');
         } else {
             Swal.fire({
                 title: 'Atención Correo SMTP',
-                text: data.error || 'Configure su correo Gmail y Contraseña de Aplicación de 16 letras en el botón Nube / Correo.',
+                text: data.error || 'No se pudo enviar el correo.',
                 icon: 'warning',
                 showCancelButton: true,
                 confirmButtonColor: '#6d28d9',
@@ -985,7 +1009,7 @@ async function enviarDocumentoActualPorCorreo() {
             });
         }
     } catch (err) {
-        Swal.fire('Aviso', 'Verifique su configuración de correo en el botón superior Nube / Correo.', 'info');
+        Swal.fire('Aviso', 'Error generando o enviando el archivo PDF: ' + (err.message || ''), 'info');
     }
 }
 
@@ -1078,7 +1102,7 @@ async function verDocumentoEgreso(egresoId) {
                     <div class="text-muted" style="font-size:0.75rem;">M.P.P.S: 131642 &bull; C.M: 13750</div>
                 </div>
                 <div class="text-end">
-                    <img src="img/logo_dr.svg" alt="Logo DR" style="height:68px;">
+                    <div style="width:56px;height:56px;border-radius:12px;background:linear-gradient(135deg,#1e1b4b,#4c1d95);border:2px solid #a78bfa;color:#f5f3ff;font-family:Georgia,serif;font-size:26px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;letter-spacing:-2px;">DR</div>
                 </div>
             </div>
             <h4 class="text-center fw-bold mb-3" style="color:#1e1b4b;letter-spacing:1px;">INFORME MÉDICO DE ALTA / EGRESO</h4>
@@ -1339,7 +1363,7 @@ async function exportarAgendaCitasPDF() {
                     <div class="text-muted" style="font-size:0.75rem;">M.P.P.S: 131642 &bull; C.M: 13750</div>
                 </div>
                 <div class="text-end">
-                    <img src="img/logo_dr.svg" alt="Logo DR" style="height:68px;">
+                    <div style="width:56px;height:56px;border-radius:12px;background:linear-gradient(135deg,#1e1b4b,#4c1d95);border:2px solid #a78bfa;color:#f5f3ff;font-family:Georgia,serif;font-size:26px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;letter-spacing:-2px;">DR</div>
                 </div>
             </div>
             <h4 class="text-center fw-bold mb-3" style="color:#1e1b4b;">REPORTE DE PACIENTES AGENDADOS</h4>
