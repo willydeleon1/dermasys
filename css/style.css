@@ -37,12 +37,13 @@ body {
     font-family: 'Cormorant Garamond', Georgia, serif;
 }
 
-/* Navbar Superior Estilo Mac / iPad Pro */
+/* Navbar Superior */
 .navbar-derma {
     background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 60%, #2e1065 100%);
     border-bottom: 2px solid var(--accent-lavender);
     padding: 0.7rem 1.25rem;
     box-shadow: 0 4px 20px rgba(30, 27, 75, 0.18);
+    z-index: 1045;
 }
 
 .monogram-badge {
