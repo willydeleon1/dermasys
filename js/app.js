@@ -924,6 +924,12 @@ async function generarInstanciaPDFPorHojas(container) {
         .toPdf()
         .get('pdf');
 
+    // Eliminar cualquier página en blanco adicional que html2pdf haya pre-creado
+    while (pdf.internal.getNumberOfPages() > 1) {
+        pdf.deletePage(pdf.internal.getNumberOfPages());
+    }
+    pdf.setPage(1);
+
     const pageW = pdf.internal.pageSize.getWidth();   // 215.9 mm
     const pageH = pdf.internal.pageSize.getHeight();  // 279.4 mm
     const margin = 10;
