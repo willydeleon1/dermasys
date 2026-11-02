@@ -862,7 +862,7 @@ async function verDocumentoConsulta(consultaId) {
         </div>
 
         <!-- HOJA 2: RUTINA DE SKINCARE (DÍA / NOCHE) Y RÉCIPE -->
-        <div class="medical-sheet">
+        <div class="medical-sheet page-break-sheet">
             ${membrete}
             <h4 class="text-center fw-bold mb-3" style="color:#6d28d9;letter-spacing:1px;">PLAN PERSONALIZADO DE SKINCARE & RÉCIPE</h4>
             <div class="p-2 mb-3 bg-light rounded border small d-flex justify-content-between">
@@ -910,17 +910,31 @@ async function verDocumentoConsulta(consultaId) {
     navegarA('print');
 }
 
-function exportarHojasAPDF(nombreBase = 'DermaSys_Documento') {
-    const container = document.getElementById('printSheetsContainer');
+function construirWorkerPDFPorHojas(container, filename) {
+    const sheets = Array.from(container.querySelectorAll('.medical-sheet'));
     const opt = {
         margin: [8, 8, 8, 8],
-        filename: `${nombreBase}_${new Date().toISOString().split('T')[0]}.pdf`,
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true },
-        jsPDF: { unit: 'mm', format: 'letter', orientation: 'portrait' },
-        pagebreak: { mode: ['css', 'legacy'] }
+        filename: filename,
+        image: { type: 'jpeg', quality: 0.96 },
+        html2canvas: { scale: 1.8, useCORS: true, scrollY: 0 },
+        jsPDF: { unit: 'mm', format: 'letter', orientation: 'portrait' }
     };
-    html2pdf().set(opt).from(container).save();
+    if (sheets.length <= 1) {
+        return html2pdf().set(opt).from(sheets[0] || container);
+    }
+    let worker = html2pdf().set(opt).from(sheets[0]).toPdf();
+    for (let i = 1; i < sheets.length; i++) {
+        worker = worker.get('pdf').then(pdf => {
+            pdf.addPage();
+        }).from(sheets[i]).toContainer().toCanvas().toPdf();
+    }
+    return worker;
+}
+
+function exportarHojasAPDF(nombreBase = 'DermaSys_Documento') {
+    const container = document.getElementById('printSheetsContainer');
+    const filename = `${nombreBase}_${new Date().toISOString().split('T')[0]}.pdf`;
+    construirWorkerPDFPorHojas(container, filename).save();
 }
 
 async function enviarDocumentoActualPorCorreo() {
@@ -945,17 +959,8 @@ async function enviarDocumentoActualPorCorreo() {
     const nombrePac = String(p.nombre_apellido || 'Paciente').replace(/[^a-zA-Z0-9_-]/g, '_');
     const pdfFilename = `Informe_Dra_Doris_Romero_${nombrePac}.pdf`;
 
-    const opt = {
-        margin: [8, 8, 8, 8],
-        filename: pdfFilename,
-        image: { type: 'jpeg', quality: 0.95 },
-        html2canvas: { scale: 1.6, useCORS: true },
-        jsPDF: { unit: 'mm', format: 'letter', orientation: 'portrait' },
-        pagebreak: { mode: ['css', 'legacy'] }
-    };
-
     try {
-        const pdfDataUri = await html2pdf().set(opt).from(container).outputPdf('datauristring');
+        const pdfDataUri = await construirWorkerPDFPorHojas(container, pdfFilename).outputPdf('datauristring');
         const creds = db.getCreds();
 
         const htmlContent = `
