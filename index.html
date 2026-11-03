@@ -102,7 +102,7 @@
                         Dra. Doris Romero &mdash; Medicina Estética y Dermatología
                     </h2>
                     <p class="mb-0 text-white-50 small">
-                        Historia Clínica Dermatológica, Mapeo Anatómico Interactivo, Rutinas de Skincare Día/Noche y Seguimiento Fotográfico.
+                        Historia Clínica Dermatológica.
                     </p>
                 </div>
                 <div class="d-flex gap-2">
@@ -197,7 +197,7 @@
         <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
             <div>
                 <h3 class="fw-bold mb-0"><i class="fa-solid fa-users text-derma me-2"></i> Directorio de Pacientes</h3>
-                <p class="text-muted small mb-0">Búsqueda por nombre, cédula o teléfono con perfil de biotipo y fototipo cutáneo</p>
+                <p class="text-muted small mb-0">Búsqueda por nombre, cédula o teléfono</p>
             </div>
             <button class="btn btn-derma" onclick="navegarA('nuevo-paciente')">
                 <i class="fa-solid fa-user-plus me-1"></i> Nuevo Paciente
@@ -440,7 +440,7 @@
                     </li>
                     <li class="nav-item">
                         <button class="nav-link fw-bold" data-bs-toggle="pill" data-bs-target="#tab-derma-fotos" type="button">
-                            <i class="fa-solid fa-camera-retro me-1"></i> Galería Antes / Después & IA <span class="badge bg-derma ms-1" id="badgeCountFotos">0</span>
+                            <i class="fa-solid fa-camera-retro me-1"></i> Galería Antes / Después<span class="badge bg-derma ms-1" id="badgeCountFotos">0</span>
                         </button>
                     </li>
                     <li class="nav-item">
@@ -461,7 +461,7 @@
                         <!-- Comparador Deslizable Interactivo Antes vs Después -->
                         <div class="card-derma p-3 mb-3" id="baComparatorCard" style="display: none;">
                             <div class="d-flex flex-wrap justify-content-between align-items-center mb-2 gap-2">
-                                <h6 class="fw-bold text-derma mb-0"><i class="fa-solid fa-sliders me-1"></i> Comparador Interactivo Antes vs. Después (Deslice el control para comparar)</h6>
+                                <h6 class="fw-bold text-derma mb-0"><i class="fa-solid fa-sliders me-1"></i> Comparador Interactivo Antes vs. Después</h6>
                                 <div class="d-flex gap-2">
                                     <select id="baSelectAntes" class="form-select form-select-sm" onchange="actualizarComparadorBA()"></select>
                                     <select id="baSelectDespues" class="form-select form-select-sm" onchange="actualizarComparadorBA()"></select>
@@ -535,7 +535,7 @@
                                 <input type="text" id="cons_zonas" class="form-control" placeholder="Frente, glabela, malar, peribucal, cuello...">
                             </div>
                             <div class="col-12">
-                                <label class="form-label small fw-bold">Examen Dermatoscópico / Luz de Wood (Opcional)</label>
+                                <label class="form-label small fw-bold">Examen Dermatoscópico / Luz de Wood</label>
                                 <input type="text" id="cons_dermatoscopia" class="form-control" placeholder="Hallazgos a la dermatoscopia...">
                             </div>
                             <div class="col-12">
@@ -547,7 +547,7 @@
                                 <input type="text" id="cons_procedimiento" class="form-control" placeholder="Ej: Toxina Botulínica, Ác. Hialurónico, Peeling, PRP...">
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label small fw-bold text-derma">Producto, Lote y Unidades / ml</label>
+                                <label class="form-label small fw-bold text-derma">Producto,Unidades / ml</label>
                                 <input type="text" id="cons_lote" class="form-control" placeholder="Ej: 50 UI Toxina (Frente 14U, Glabela 20U) - Lote #...">
                             </div>
                         </div>
@@ -603,13 +603,13 @@
                 <!-- Columna Derecha: Mapa Anatómico Interactivo -->
                 <div class="col-lg-5">
                     <div class="card-derma p-4">
-                        <h5 class="fw-bold text-derma mb-1"><i class="fa-solid fa-pen-nib me-2"></i> Mapa Anatómico Interactivo</h5>
+                        <h5 class="fw-bold text-derma mb-1"><i class="fa-solid fa-pen-nib me-2"></i> Mapa Anatómico</h5>
                         <p class="small text-muted mb-2">Elija Rostro, Cuerpo Completo o suba una foto del paciente para marcar zonas y puntos de aplicación.</p>
 
                         <!-- Selector de Vista Anatómica: Rostro / Cuerpo Completo / Foto Paciente -->
                         <div class="btn-group w-100 mb-3 shadow-sm" role="group">
                             <button type="button" class="btn btn-sm btn-vista-mapa btn-derma" onclick="cambiarFondoMapa('rostro', this)">
-                                <i class="fa-solid fa-face-smile me-1"></i> Rostro (3 Vistas)
+                                <i class="fa-solid fa-face-smile me-1"></i> Rostro
                             </button>
                             <button type="button" class="btn btn-sm btn-vista-mapa btn-outline-derma" onclick="cambiarFondoMapa('cuerpo', this)">
                                 <i class="fa-solid fa-person me-1"></i> Cuerpo Completo
@@ -724,6 +724,9 @@
                             <option value="5">5 Días</option>
                             <option value="7">7 Días</option>
                             <option value="15">15 Días</option>
+                            <option value="15">17 Días</option>
+                            <option value="15">19 Días</option>
+                            <option value="15">21 Días</option>
                         </select>
                     </div>
                     <div class="col-12 text-end">
@@ -833,7 +836,7 @@
     <!-- ==================== VISTA 8: COPILOTO IA DERMATOLÓGICO ==================== -->
     <section id="view-copiloto-ia" class="view-section" style="display: none;">
         <div class="card-derma p-4 mb-4">
-            <h3 class="fw-bold text-derma mb-1"><i class="fa-solid fa-wand-magic-sparkles me-2"></i> Copiloto IA Dermo-Estético (Google Gemini)</h3>
+            <h3 class="fw-bold text-derma mb-1"><i class="fa-solid fa-wand-magic-sparkles me-2"></i> Copiloto IA Dermo-Estético</h3>
             <p class="text-muted small mb-3">Consulte formulaciones magistrales, protocolos de peeling, dosis de isotretinoína o interacciones farmacológicas.</p>
             <div class="input-group mb-3">
                 <input type="text" id="iaPromptInput" class="form-control form-control-lg" placeholder="Ej: Sugiere fórmula magistral despigmentante para paciente Fototipo IV con melasma resistente...">
@@ -910,7 +913,7 @@
                     <div class="mb-3">
                         <label class="form-label small fw-bold">Seleccionar Fotografía o Tomar con Cámara <span class="text-danger">*</span></label>
                         <input type="file" id="foto_archivo" class="form-control" accept="image/*" required>
-                        <div class="form-text small">El sistema comprime automáticamente la foto a ~150 KB sin perder nitidez clínica.</div>
+                        <div class="form-text small">El sistema comprime automáticamente la foto</div>
                     </div>
                     <div class="mb-0">
                         <label class="form-label small fw-bold">Notas / Parámetros</label>
@@ -1044,7 +1047,7 @@
                 <div class="modal-body p-4">
                     <h6 class="fw-bold text-derma mb-2"><i class="fa-solid fa-database me-1"></i> 1. Sincronización Nube Supabase</h6>
                     <p class="small text-muted mb-2">
-                        Pegue aquí la URL y la Anon Key de su proyecto gratuito de <strong>Supabase</strong>. Si lo deja vacío, funciona en modo local de prueba.
+                        Pegue aquí la URL y la Anon Key de su proyecto de <strong>Supabase</strong>. Si lo deja vacío, funciona en modo local de prueba.
                     </p>
                     <div class="mb-2">
                         <label class="form-label small fw-bold">Supabase Project URL</label>
@@ -1056,16 +1059,16 @@
                     </div>
 
                     <hr>
-                    <h6 class="fw-bold text-derma mb-2"><i class="fa-solid fa-envelope-circle-check me-1"></i> 2. Correo Institucional DermaSys (Gmail SMTP)</h6>
+                    <h6 class="fw-bold text-derma mb-2"><i class="fa-solid fa-envelope-circle-check me-1"></i> 2. Correo DermaSys</h6>
                     <p class="small text-muted mb-2">
-                        Permite enviar Informes Dermo-Estéticos, Rutinas de Skincare y Altas por correo en 1 clic (igual que en los otros sistemas).
+                        Permite enviar Informes Dermo-Estéticos, Rutinas de Skincare y Altas por correo en 1 clic.
                     </p>
                     <div class="mb-2">
                         <label class="form-label small fw-bold">Correo Gmail del Sistema</label>
                         <input type="email" id="smtp_email_input" class="form-control form-control-sm" placeholder="Ej: dermasys.draromero@gmail.com">
                     </div>
                     <div class="mb-0">
-                        <label class="form-label small fw-bold">Contraseña de Aplicación Google (16 letras)</label>
+                        <label class="form-label small fw-bold">Contraseña de Aplicación</label>
                         <input type="password" id="smtp_pass_input" class="form-control form-control-sm font-monospace" placeholder="xxxx xxxx xxxx xxxx">
                     </div>
                 </div>
