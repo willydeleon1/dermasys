@@ -515,12 +515,13 @@
                                 <select id="cons_tipo" class="form-select">
                                     <option value="Primera Consulta Dermatológica">Primera Consulta Dermatológica</option>
                                     <option value="Procedimiento Estético">Procedimiento de Medicina Estética</option>
+                                    <option value="Consulta Tricológica / Alopecia">Consulta Tricológica / Alopecia</option>
                                     <option value="Control / Seguimiento">Control / Evaluación Evolutiva</option>
                                 </select>
                             </div>
                             <div class="col-12">
                                 <label class="form-label small fw-bold">Motivo de Consulta <span class="text-danger">*</span></label>
-                                <input type="text" id="cons_motivo" class="form-control" placeholder="Ej: Manejo de melasma, acné inflamatorio, aplicación de toxina botulínica..." required>
+                                <input type="text" id="cons_motivo" class="form-control" placeholder="Ej: Manejo de melasma, acné inflamatorio, alopecia, aplicación de toxina botulínica..." required>
                             </div>
                             <div class="col-12">
                                 <label class="form-label small fw-bold">Enfermedad Actual / Evolución</label>
@@ -562,6 +563,7 @@
                                 <button type="button" class="btn btn-sm btn-outline-derma py-0" onclick="cargarPlantillaSkincare('acne')">+ Acné</button>
                                 <button type="button" class="btn btn-sm btn-outline-derma py-0" onclick="cargarPlantillaSkincare('antiaging')">+ Anti-Aging</button>
                                 <button type="button" class="btn btn-sm btn-outline-derma py-0" onclick="cargarPlantillaSkincare('rosacea')">+ Rosácea</button>
+                                <button type="button" class="btn btn-sm btn-outline-derma py-0" onclick="cargarPlantillaSkincare('alopecia')">+ Alopecia</button>
                             </div>
                         </div>
 
@@ -606,13 +608,16 @@
                         <h5 class="fw-bold text-derma mb-1"><i class="fa-solid fa-pen-nib me-2"></i> Mapa Anatómico</h5>
                         <p class="small text-muted mb-2">Elija Rostro, Cuerpo Completo o suba una foto del paciente para marcar zonas y puntos de aplicación.</p>
 
-                        <!-- Selector de Vista Anatómica: Rostro / Cuerpo Completo / Foto Paciente -->
+                        <!-- Selector de Vista Anatómica: Rostro / Capilar (Alopecia) / Cuerpo Completo / Foto Paciente -->
                         <div class="btn-group w-100 mb-3 shadow-sm" role="group">
                             <button type="button" class="btn btn-sm btn-vista-mapa btn-derma" onclick="cambiarFondoMapa('rostro', this)">
                                 <i class="fa-solid fa-face-smile me-1"></i> Rostro
                             </button>
+                            <button type="button" class="btn btn-sm btn-vista-mapa btn-outline-derma" onclick="cambiarFondoMapa('capilar', this)">
+                                <i class="fa-solid fa-head-side-virus me-1"></i> Alopecia / Capilar
+                            </button>
                             <button type="button" class="btn btn-sm btn-vista-mapa btn-outline-derma" onclick="cambiarFondoMapa('cuerpo', this)">
-                                <i class="fa-solid fa-person me-1"></i> Cuerpo Completo
+                                <i class="fa-solid fa-person me-1"></i> Cuerpo
                             </button>
                             <button type="button" class="btn btn-sm btn-vista-mapa btn-outline-derma" onclick="document.getElementById('mapaFotoInput').click()">
                                 <i class="fa-solid fa-camera me-1"></i> Foto Real
@@ -627,6 +632,9 @@
                             </button>
                             <button type="button" class="btn btn-sm btn-pincel-mapa" style="background:#e0f2fe;color:#0284c7;font-weight:600;" onclick="seleccionarPincelMapa('#0284c7', 'Ác. Hialurónico', this)">
                                 ● Relleno / AH
+                            </button>
+                            <button type="button" class="btn btn-sm btn-pincel-mapa" style="background:#d1fae5;color:#059669;font-weight:600;" onclick="seleccionarPincelMapa('#059669', 'Alopecia / Capilar', this)">
+                                ● Alopecia / Capilar
                             </button>
                             <button type="button" class="btn btn-sm btn-pincel-mapa" style="background:#fee2e2;color:#dc2626;font-weight:600;" onclick="seleccionarPincelMapa('#dc2626', 'Lesión / Lunar', this)">
                                 ● Lesión / Biopsia
@@ -853,6 +861,9 @@
                 <i class="fa-solid fa-arrow-left me-1"></i> Volver al Expediente
             </button>
             <div class="d-flex flex-wrap gap-2">
+                <button class="btn btn-success btn-sm fw-bold" onclick="enviarDocumentoActualPorWhatsApp()">
+                    <i class="fa-brands fa-whatsapp me-1"></i> Enviar PDF por WhatsApp
+                </button>
                 <button class="btn btn-outline-derma btn-sm" onclick="enviarDocumentoActualPorCorreo()">
                     <i class="fa-solid fa-envelope me-1"></i> Enviar por Correo al Paciente
                 </button>
@@ -893,6 +904,7 @@
                             <label class="form-label small fw-bold">Zona Anatómica</label>
                             <select id="foto_zona" class="form-select">
                                 <option value="Rostro Frontal">Rostro Frontal</option>
+                                <option value="Cuero Cabelludo / Alopecia (Superior)">Cuero Cabelludo / Alopecia (Superior)</option>
                                 <option value="Perfil Derecho">Perfil Derecho</option>
                                 <option value="Perfil Izquierdo">Perfil Izquierdo</option>
                                 <option value="Tercio Superior / Glabela">Tercio Superior / Glabela</option>

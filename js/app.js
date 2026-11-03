@@ -458,10 +458,11 @@ async function cargarHistoriaPaciente(pacienteId) {
     renderizarListaEgresos(egresos);
 }
 
-// ==================== 4. MAPA ANATÓMICO INTERACTIVO (ROSTRO 3 VISTAS / CUERPO COMPLETO / FOTO REAL) ====================
+// ==================== 4. MAPA ANATÓMICO INTERACTIVO (ROSTRO / ALOPECIA CAPILAR / CUERPO / FOTO REAL) ====================
 let currentMapType = 'rostro';
 const mapBgImages = {
     rostro: new Image(),
+    capilar: new Image(),
     cuerpo: new Image(),
     custom: null
 };
@@ -472,8 +473,10 @@ function initFaceMapCanvas() {
     faceCtx = faceCanvas.getContext('2d');
 
     mapBgImages.rostro.onload = () => { if (currentMapType === 'rostro') redibujarMapaFacial(); };
+    mapBgImages.capilar.onload = () => { if (currentMapType === 'capilar') redibujarMapaFacial(); };
     mapBgImages.cuerpo.onload = () => { if (currentMapType === 'cuerpo') redibujarMapaFacial(); };
     mapBgImages.rostro.src = 'img/mapa_rostro.jpg';
+    mapBgImages.capilar.src = 'img/mapa_capilar.jpg';
     mapBgImages.cuerpo.src = 'img/mapa_cuerpo.jpg';
 
     dibujarEsquemaFacialBase();
@@ -539,7 +542,8 @@ function cargarFotoPersonalizadaMapa(e) {
             currentMapType = 'custom';
             const btns = document.querySelectorAll('.btn-vista-mapa');
             btns.forEach(b => { b.classList.remove('btn-derma'); b.classList.add('btn-outline-derma'); });
-            if (btns[2]) { btns[2].classList.remove('btn-outline-derma'); btns[2].classList.add('btn-derma'); }
+            const lastBtn = btns[btns.length - 1];
+            if (lastBtn) { lastBtn.classList.remove('btn-outline-derma'); lastBtn.classList.add('btn-derma'); }
             redibujarMapaFacial();
         };
         img.src = ev.target.result;
@@ -646,6 +650,10 @@ function cargarPlantillaSkincare(tipo) {
         rosacea: {
             d: "1. Agua Micelar Piel Sensible / Limpiador Syndet sin jabón.\n2. Crema Calmante Anti-Rojeces (Ácido Azelaico 10% + Centella Asiática).\n3. Protector Solar 100% Mineral (Filtros Físicos) SPF 50+.",
             n: "1. Limpieza suave con agua fresca (no caliente).\n2. Ácido Azelaico 15% gel-crema en zonas con eritema o pápulas.\n3. Bálsamo Reparador de Barrera Cutánea (Pantenol + Agua Termal)."
+        },
+        alopecia: {
+            d: "1. Champú Dermatológico Anticaída / Fortalecedor: Lavar cuero cabelludo dejando actuar la espuma por 3-5 minutos antes de enjuagar.\n2. Loción / Sérum Capilar Estimulante (Péptidos / Cafeína / Saw Palmetto): Aplicar en cuero cabelludo seco por la mañana.",
+            n: "1. Loción Capilar Magistral (Minoxidil 5% + Finasteride/Dutasteride tópico o Melatonina): Aplicar 1 ml (6-8 puffs) en zonas de menor densidad (entradas/coronilla) con suave masaje en cuero cabelludo seco.\n2. No lavar el cabello hasta la mañana siguiente."
         },
         post_toxina: {
             p: "• Mantener posición vertical (no acostarse ni bajar la cabeza) durante las primeras 4 horas.\n• No masajear, frotar ni presionar las zonas de aplicación.\n• No realizar ejercicio físico intenso, sauna, baño turco ni piscina por 48 horas.\n• Asistir a su cita de control fotográfico y evaluación a los 14 días."
@@ -1360,6 +1368,68 @@ async function enviarDocumentoActualPorCorreo() {
         }
     } catch (err) {
         Swal.fire('Aviso', 'Error generando o enviando el archivo PDF: ' + (err.message || ''), 'info');
+    }
+}
+
+async function enviarDocumentoActualPorWhatsApp() {
+    const p = currentPrintPatient || {};
+    const container = document.getElementById('printSheetsContainer');
+    const nombrePac = String(p.nombre_apellido || 'Paciente').replace(/[^a-zA-Z0-9_-]/g, '_');
+    const pdfFilename = `Informe_Dra_Doris_Romero_${nombrePac}.pdf`;
+
+    Swal.fire({ title: 'Preparando PDF para WhatsApp...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+    try {
+        const pdf = await generarInstanciaPDFPorHojas(container);
+        const pdfBlob = pdf.output('blob');
+        const pdfFile = new File([pdfBlob], pdfFilename, { type: 'application/pdf' });
+
+        // 1. Si está en Teléfono o Tablet (iOS / Android) con soporte nativo para compartir archivos directo a WhatsApp:
+        if (navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
+            Swal.close();
+            await navigator.share({
+                files: [pdfFile],
+                title: currentPrintSubject,
+                text: `Hola ${p.nombre_apellido || ''}, le compartimos su Informe Médico y Plan de Tratamiento en PDF de parte de la Dra. Doris Romero.`
+            });
+            return;
+        }
+
+        // 2. Si está en PC / Escritorio (Windows / Mac): descarga automática del PDF + abre WhatsApp del paciente
+        const { value: telefonoDestino } = await Swal.fire({
+            title: 'Enviar PDF por WhatsApp',
+            input: 'text',
+            inputLabel: `Número de WhatsApp de ${p.nombre_apellido || 'Paciente'}`,
+            inputValue: p.telefono || '',
+            inputPlaceholder: 'Ej: 0414-0000000',
+            showCancelButton: true,
+            confirmButtonColor: '#16a34a',
+            confirmButtonText: '<i class="fa-brands fa-whatsapp me-1"></i> Descargar PDF y Abrir WhatsApp',
+            cancelButtonText: 'Cancelar'
+        });
+
+        if (!telefonoDestino) return;
+
+        // Descargar el PDF automáticamente en la PC
+        pdf.save(pdfFilename);
+
+        const telWa = String(telefonoDestino).replace(/\D/g, '').replace(/^0/, '58');
+        const msgWa = encodeURIComponent(
+            `Hola ${p.nombre_apellido || ''}, reciba un cordial saludo de parte de la *Dra. Doris Romero* (Medicina Estética y Dermatología).\n\n` +
+            `A continuación le adjunto en formato *PDF (${pdfFilename})* su Informe Médico, Plan de Tratamiento / Skincare y Récipe.`
+        );
+
+        window.open(`https://wa.me/${telWa}?text=${msgWa}`, '_blank');
+
+        Swal.fire({
+            icon: 'success',
+            title: '¡PDF Descargado y WhatsApp Abierto!',
+            html: `El archivo <strong>${esc(pdfFilename)}</strong> ya se descargó en su equipo.<br><br>Solo arrástrelo o adjúntelo en la ventana de WhatsApp que se acaba de abrir.`,
+            confirmButtonColor: '#6d28d9'
+        });
+    } catch (err) {
+        if (err && err.name === 'AbortError') return;
+        Swal.fire('Aviso', 'No se pudo preparar el archivo PDF para WhatsApp: ' + (err.message || ''), 'warning');
     }
 }
 
