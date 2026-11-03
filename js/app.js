@@ -77,12 +77,15 @@ function actualizarIndicadorNube() {
 
 // ==================== 1. DASHBOARD ====================
 async function cargarDashboard() {
-    const [pacientes, consultas, citas, fotos] = await Promise.all([
+    const [pacientes, consultas, citas, fotos, sedes] = await Promise.all([
         db.getAll('pacientes'),
         db.getAll('consultas', 'fecha_consulta', false),
         db.getAll('citas', 'fecha_cita', true),
-        db.getAll('fotos_evolutivas')
+        db.getAll('fotos_evolutivas'),
+        db.getAll('sedes', 'id', true)
     ]);
+
+    poblarSelectoresSedes(sedes, sedes[0]?.id || 1);
 
     document.getElementById('statTotalPacientes').innerText = pacientes.length;
     document.getElementById('statTotalConsultas').innerText = consultas.length;
@@ -191,11 +194,11 @@ async function cargarTablaPacientes() {
                     <div class="text-muted" style="font-size:0.75rem;">${esc(p.sexo)}</div>
                 </td>
                 <td>
-                    <span class="badge bg-derma-subtle text-derma border">Biotipo: ${esc(p.biotipo_cutaneo || 'Mixta')}</span>
-                    <span class="badge bg-light text-dark border ms-1">Fitzpatrick ${esc(p.fototipo_fitzpatrick || 'III')}</span>
+                    <span class="badge bg-light text-dark border"><i class="fa-solid fa-hospital text-derma me-1"></i>${esc(sedeObj.nombre)}</span>
                 </td>
                 <td>
-                    <span class="badge bg-light text-dark border"><i class="fa-solid fa-hospital text-derma me-1"></i>${esc(sedeObj.nombre)}</span>
+                    <span class="badge bg-derma-subtle text-derma border">Biotipo: ${esc(p.biotipo_cutaneo || 'Mixta')}</span>
+                    <span class="badge bg-light text-dark border ms-1">Fitzpatrick ${esc(p.fototipo_fitzpatrick || 'III')}</span>
                 </td>
                 <td class="small">
                     <i class="fa-brands fa-whatsapp text-success me-1"></i> ${esc(p.telefono || 'N/D')}
@@ -1538,8 +1541,8 @@ async function cargarAgendaCitas() {
                     <a href="javascript:void(0)" onclick="navegarA('historia', ${p.id})" class="fw-bold text-dark text-decoration-none">${esc(p.nombre_apellido)}</a>
                     <div class="small text-muted">${esc(p.cedula)}</div>
                 </td>
-                <td><span class="badge bg-derma-subtle text-derma border">${esc(c.tipo)}</span></td>
                 <td><span class="badge bg-light text-dark border"><i class="fa-solid fa-hospital text-derma me-1"></i>${esc(sedeObj.nombre)}</span></td>
+                <td><span class="badge bg-derma-subtle text-derma border">${esc(c.tipo)}</span></td>
                 <td><span class="badge bg-success">${esc(c.estado)}</span></td>
                 <td>
                     <div class="d-flex flex-wrap gap-1">
@@ -1853,9 +1856,9 @@ function limpiarFormularioSede() {
     const idEdit = document.getElementById('sede_id_edit');
     if (idEdit) idEdit.value = '';
     const tit = document.getElementById('tituloFormSede');
-    if (tit) tit.innerHTML = '<i class="fa-solid fa-plus-circle text-derma me-1"></i> Registrar Nueva Sede';
-    const btnCancel = document.getElementById('btnCancelarEdicionSede');
-    if (btnCancel) btnCancel.style.display = 'none';
+    if (tit) tit.innerHTML = '<i class="fa-solid fa-building-circle-check me-2"></i> Registrar Nueva Sede';
+    const btnCancel = document.getElementById('btnCancelarSede');
+    if (btnCancel) btnCancel.classList.add('d-none');
 }
 
 async function guardarSede(e) {
@@ -1897,7 +1900,8 @@ async function editarSede(id) {
     document.getElementById('sede_direccion').value = s.direccion || '';
     document.getElementById('sede_telefono').value = s.telefono || '';
     document.getElementById('tituloFormSede').innerHTML = '<i class="fa-solid fa-pen text-derma me-1"></i> Editar Sede';
-    document.getElementById('btnCancelarEdicionSede').style.display = 'block';
+    const btnCancel = document.getElementById('btnCancelarSede');
+    if (btnCancel) btnCancel.classList.remove('d-none');
 }
 
 async function eliminarSede(id) {
