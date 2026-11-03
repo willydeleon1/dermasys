@@ -65,6 +65,11 @@
                     </a>
                 </li>
                 <li class="nav-item">
+                    <a class="nav-link" data-nav="sedes" href="javascript:void(0)" onclick="navegarA('sedes')">
+                        <i class="fa-solid fa-hospital"></i> Sedes
+                    </a>
+                </li>
+                <li class="nav-item">
                     <a class="nav-link" data-nav="copiloto-ia" href="javascript:void(0)" onclick="navegarA('copiloto-ia')">
                         <i class="fa-solid fa-wand-magic-sparkles" style="color: #c4b5fd;"></i> Copiloto IA
                     </a>
@@ -200,9 +205,18 @@
         </div>
 
         <div class="card-derma p-3 mb-3">
-            <div class="input-group">
-                <span class="input-group-text bg-white"><i class="fa-solid fa-magnifying-glass text-muted"></i></span>
-                <input type="text" id="buscadorPacientes" class="form-control" placeholder="Buscar paciente por nombre, cédula o WhatsApp..." oninput="cargarTablaPacientes()">
+            <div class="row g-2">
+                <div class="col-md-8">
+                    <div class="input-group">
+                        <span class="input-group-text bg-white"><i class="fa-solid fa-magnifying-glass text-muted"></i></span>
+                        <input type="text" id="buscadorPacientes" class="form-control" placeholder="Buscar paciente por nombre, cédula o WhatsApp..." oninput="cargarTablaPacientes()">
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <select id="filtroSedePacientes" class="form-select" onchange="cargarTablaPacientes()">
+                        <option value="">Todas las Sedes / Consultorios</option>
+                    </select>
+                </div>
             </div>
         </div>
 
@@ -214,6 +228,7 @@
                             <th class="ps-3">Paciente</th>
                             <th>Cédula</th>
                             <th>Edad / Sexo</th>
+                            <th>Sede</th>
                             <th>Perfil Cutáneo</th>
                             <th>WhatsApp</th>
                             <th class="text-end pe-3">Acciones</th>
@@ -275,6 +290,10 @@
                                 <input type="text" id="pac_ocupacion" class="form-control" placeholder="Ej: Arquitecta">
                             </div>
                             <div class="col-md-6">
+                                <label class="form-label small fw-bold text-derma"><i class="fa-solid fa-hospital me-1"></i> Sede / Consultorio</label>
+                                <select id="pac_sede_id" class="form-select"></select>
+                            </div>
+                            <div class="col-12">
                                 <label class="form-label small fw-bold">Dirección</label>
                                 <input type="text" id="pac_direccion" class="form-control" placeholder="Ciudad / Urbanización">
                             </div>
@@ -653,11 +672,15 @@
             <input type="hidden" id="eg_paciente_id">
             <div class="card-derma p-4">
                 <div class="row g-3">
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <label class="form-label small fw-bold">Fecha de Egreso</label>
                         <input type="date" id="eg_fecha" class="form-control" required>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-3">
+                        <label class="form-label small fw-bold text-derma">Sede / Consultorio</label>
+                        <select id="eg_sede_id" class="form-select"></select>
+                    </div>
+                    <div class="col-md-3">
                         <label class="form-label small fw-bold">Tipo de Atención</label>
                         <select id="eg_tipo_atencion" class="form-select">
                             <option value="Procedimiento Ambulatorio">Procedimiento Estético / Dermatológico Ambulatorio</option>
@@ -665,7 +688,7 @@
                             <option value="Consulta Externa">Consulta Externa</option>
                         </select>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <label class="form-label small fw-bold">Conducta de Egreso</label>
                         <select id="eg_conducta" class="form-select" required>
                             <option value="Alta Médica por Evolución Satisfactoria">Alta Médica por Evolución Satisfactoria</option>
@@ -738,6 +761,7 @@
                         <tr>
                             <th class="ps-3">Fecha y Hora</th>
                             <th>Paciente</th>
+                            <th>Sede</th>
                             <th>Tipo</th>
                             <th>Estado</th>
                             <th>Recordar (WhatsApp / Correo)</th>
@@ -746,6 +770,62 @@
                     </thead>
                     <tbody id="tablaCitasBody"></tbody>
                 </table>
+            </div>
+        </div>
+    </section>
+
+    <!-- ==================== VISTA 7.5: GESTIÓN DE SEDES / CONSULTORIOS ==================== -->
+    <section id="view-sedes" class="view-section" style="display: none;">
+        <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+            <div>
+                <h3 class="fw-bold mb-0"><i class="fa-solid fa-hospital text-derma me-2"></i> Sedes y Consultorios</h3>
+                <p class="text-muted small mb-0">Administre las sedes o clínicas donde pasa consulta la Dra. Doris Romero</p>
+            </div>
+        </div>
+
+        <div class="row g-4">
+            <div class="col-lg-4">
+                <div class="card-derma p-4">
+                    <h5 class="fw-bold text-derma mb-3" id="tituloFormSede"><i class="fa-solid fa-building-circle-check me-2"></i> Registrar Nueva Sede</h5>
+                    <form id="formSede" onsubmit="guardarSede(event)">
+                        <input type="hidden" id="sede_id_edit">
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold">Nombre de la Sede / Consultorio <span class="text-danger">*</span></label>
+                            <input type="text" id="sede_nombre" class="form-control" placeholder="Ej: Consultorio Principal / Clínica..." required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold">Dirección / Piso / Consultorio</label>
+                            <input type="text" id="sede_direccion" class="form-control" placeholder="Ej: Torre Médica, Piso 3, Cons. 304">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold">Teléfono de Contacto</label>
+                            <input type="text" id="sede_telefono" class="form-control" placeholder="Ej: 0414-0000000">
+                        </div>
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-derma flex-fill"><i class="fa-solid fa-floppy-disk me-1"></i> Guardar Sede</button>
+                            <button type="button" id="btnCancelarSede" class="btn btn-outline-secondary d-none" onclick="limpiarFormularioSede()">Cancelar</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div class="col-lg-8">
+                <div class="card-derma overflow-hidden">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light small text-uppercase text-muted">
+                                <tr>
+                                    <th class="ps-3">Nombre de la Sede / Consultorio</th>
+                                    <th>Dirección</th>
+                                    <th>Teléfono</th>
+                                    <th class="text-center">Pacientes</th>
+                                    <th class="text-end pe-3">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tablaSedesBody"></tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
         </div>
     </section>
@@ -892,6 +972,10 @@
                                 </div>
                             </div>
                             <div class="mb-2">
+                                <label class="form-label small fw-bold text-derma">Sede / Consultorio</label>
+                                <select id="cita_exp_sede_id" class="form-select"></select>
+                            </div>
+                            <div class="mb-2">
                                 <label class="form-label small fw-bold">Tipo de Cita</label>
                                 <select id="cita_exp_tipo" class="form-select">
                                     <option value="Primera Consulta Dermatológica">Primera Consulta Dermatológica</option>
@@ -912,6 +996,10 @@
                             <div class="mb-2">
                                 <label class="form-label small fw-bold">Paciente <span class="text-danger">*</span></label>
                                 <select id="cita_paciente_existente" class="form-select" required></select>
+                            </div>
+                            <div class="mb-2">
+                                <label class="form-label small fw-bold text-derma">Sede / Consultorio</label>
+                                <select id="cita_ex_sede_id" class="form-select"></select>
                             </div>
                             <div class="row g-2 mb-2">
                                 <div class="col-6">

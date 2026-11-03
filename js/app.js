@@ -37,12 +37,30 @@ async function navegarA(vista, paramId = null) {
 
     if (vista === 'dashboard') await cargarDashboard();
     if (vista === 'pacientes') await cargarTablaPacientes();
-    if (vista === 'nuevo-paciente') prepararFormularioPaciente(paramId);
+    if (vista === 'nuevo-paciente') await prepararFormularioPaciente(paramId);
     if (vista === 'historia' && paramId) await cargarHistoriaPaciente(paramId);
     if (vista === 'nueva-consulta' && paramId) await prepararNuevaConsulta(paramId);
     if (vista === 'nuevo-egreso' && paramId) await prepararNuevoEgreso(paramId);
     if (vista === 'citas') await cargarAgendaCitas();
+    if (vista === 'sedes') await cargarVistaSedes();
     if (vista === 'copiloto-ia') await prepararCopilotoIA(paramId);
+}
+
+function poblarSelectoresSedes(sedes, selectedId = null) {
+    const lista = (sedes && sedes.length > 0) ? sedes : [{ id: 1, nombre: 'Consultorio Principal - Dra. Doris Romero' }];
+    const optsHtml = lista.map(s => `<option value="${s.id}" ${Number(s.id) === Number(selectedId) ? 'selected' : ''}>${esc(s.nombre)}</option>`).join('');
+
+    ['pac_sede_id', 'eg_sede_id', 'cita_exp_sede_id', 'cita_ex_sede_id'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.innerHTML = optsHtml;
+    });
+
+    const filtro = document.getElementById('filtroSedePacientes');
+    if (filtro) {
+        const currentVal = filtro.value;
+        filtro.innerHTML = `<option value="">Todas las Sedes</option>` +
+            lista.map(s => `<option value="${s.id}" ${String(s.id) === String(currentVal) ? 'selected' : ''}>${esc(s.nombre)}</option>`).join('');
+    }
 }
 
 function actualizarIndicadorNube() {
@@ -125,26 +143,33 @@ async function cargarDashboard() {
 // ==================== 2. DIRECTORIO Y REGISTRO DE PACIENTES ====================
 async function cargarTablaPacientes() {
     const q = (document.getElementById('buscadorPacientes')?.value || '').toLowerCase().trim();
-    const [pacientes, consultas] = await Promise.all([
+    const filtroSede = document.getElementById('filtroSedePacientes')?.value || '';
+    const [pacientes, consultas, sedes] = await Promise.all([
         db.getAll('pacientes', 'nombre_apellido', true),
-        db.getAll('consultas')
+        db.getAll('consultas'),
+        db.getAll('sedes', 'id', true)
     ]);
 
-    const filtrados = pacientes.filter(p =>
-        (p.nombre_apellido || '').toLowerCase().includes(q) ||
-        (p.cedula || '').toLowerCase().includes(q) ||
-        (p.telefono || '').toLowerCase().includes(q)
-    );
+    poblarSelectoresSedes(sedes);
+
+    const filtrados = pacientes.filter(p => {
+        const matchTexto = (p.nombre_apellido || '').toLowerCase().includes(q) ||
+            (p.cedula || '').toLowerCase().includes(q) ||
+            (p.telefono || '').toLowerCase().includes(q);
+        const matchSede = !filtroSede || String(p.sede_id || 1) === String(filtroSede);
+        return matchTexto && matchSede;
+    });
 
     const tbody = document.getElementById('tablaPacientesBody');
     if (filtrados.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" class="text-center py-5 text-muted">No se encontraron pacientes registrados.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="7" class="text-center py-5 text-muted">No se encontraron pacientes registrados.</td></tr>`;
         return;
     }
 
     tbody.innerHTML = filtrados.map(p => {
         const numCons = consultas.filter(c => Number(c.paciente_id) === Number(p.id)).length;
         const esProv = String(p.cedula).startsWith('PROV-');
+        const sedeObj = sedes.find(s => Number(s.id) === Number(p.sede_id)) || sedes[0] || { nombre: 'Consultorio Principal' };
         return `
             <tr>
                 <td class="ps-3">
@@ -169,6 +194,9 @@ async function cargarTablaPacientes() {
                     <span class="badge bg-derma-subtle text-derma border">Biotipo: ${esc(p.biotipo_cutaneo || 'Mixta')}</span>
                     <span class="badge bg-light text-dark border ms-1">Fitzpatrick ${esc(p.fototipo_fitzpatrick || 'III')}</span>
                 </td>
+                <td>
+                    <span class="badge bg-light text-dark border"><i class="fa-solid fa-hospital text-derma me-1"></i>${esc(sedeObj.nombre)}</span>
+                </td>
                 <td class="small">
                     <i class="fa-brands fa-whatsapp text-success me-1"></i> ${esc(p.telefono || 'N/D')}
                 </td>
@@ -190,6 +218,9 @@ async function prepararFormularioPaciente(editId = null) {
     document.getElementById('pac_id_edit').value = editId || '';
     document.getElementById('tituloFormPaciente').innerText = editId ? 'Editar Expediente Dermo-Estético' : 'Registrar Nuevo Paciente';
 
+    const sedes = await db.getAll('sedes', 'id', true);
+    poblarSelectoresSedes(sedes, sedes[0]?.id || 1);
+
     if (editId) {
         const pacientes = await db.getAll('pacientes');
         const p = pacientes.find(x => Number(x.id) === Number(editId));
@@ -203,6 +234,9 @@ async function prepararFormularioPaciente(editId = null) {
             document.getElementById('pac_correo').value = p.correo || '';
             document.getElementById('pac_ocupacion').value = p.ocupacion || '';
             document.getElementById('pac_direccion').value = p.direccion || '';
+            if (document.getElementById('pac_sede_id')) {
+                document.getElementById('pac_sede_id').value = p.sede_id || sedes[0]?.id || 1;
+            }
             document.getElementById('pac_biotipo').value = p.biotipo_cutaneo || 'Mixta';
             document.getElementById('pac_fitzpatrick').value = p.fototipo_fitzpatrick || 'III';
             document.getElementById('pac_glogau').value = p.escala_glogau || 'I - Leve';
@@ -257,7 +291,7 @@ async function guardarPaciente(e) {
         correo: document.getElementById('pac_correo').value.trim(),
         ocupacion: document.getElementById('pac_ocupacion').value.trim(),
         direccion: document.getElementById('pac_direccion').value.trim(),
-        sede_id: 1,
+        sede_id: Number(document.getElementById('pac_sede_id')?.value) || 1,
         biotipo_cutaneo: document.getElementById('pac_biotipo').value,
         fototipo_fitzpatrick: document.getElementById('pac_fitzpatrick').value,
         escala_glogau: document.getElementById('pac_glogau').value,
@@ -295,15 +329,17 @@ async function guardarPaciente(e) {
 // ==================== 3. HISTORIA CLÍNICA DERMO-ESTÉTICA ====================
 async function cargarHistoriaPaciente(pacienteId) {
     currentPatientId = Number(pacienteId);
-    const [pacientes, todasConsultas, todasFotos, todosEgresos] = await Promise.all([
+    const [pacientes, todasConsultas, todasFotos, todosEgresos, sedes] = await Promise.all([
         db.getAll('pacientes'),
         db.getAll('consultas', 'fecha_consulta', false),
         db.getAll('fotos_evolutivas', 'fecha_foto', false),
-        db.getAll('egresos', 'fecha_egreso', false)
+        db.getAll('egresos', 'fecha_egreso', false),
+        db.getAll('sedes', 'id', true)
     ]);
 
     const p = pacientes.find(x => Number(x.id) === currentPatientId);
     if (!p) return navegarA('pacientes');
+    const sedeObj = sedes.find(s => Number(s.id) === Number(p.sede_id)) || sedes[0] || { nombre: 'Consultorio Principal' };
 
     const consultas = todasConsultas.filter(c => Number(c.paciente_id) === currentPatientId);
     const fotos = todasFotos.filter(f => Number(f.paciente_id) === currentPatientId);
@@ -317,11 +353,12 @@ async function cargarHistoriaPaciente(pacienteId) {
         <span><strong class="text-white">Edad:</strong> ${p.edad || '--'} años</span> &bull;
         <span><strong class="text-white">Biotipo:</strong> ${esc(p.biotipo_cutaneo || 'Mixta')}</span> &bull;
         <span><strong class="text-white">Fitzpatrick:</strong> Tipo ${esc(p.fototipo_fitzpatrick || 'III')}</span> &bull;
-        <span><strong class="text-white">Glogau:</strong> ${esc(p.escala_glogau || 'I')}</span>
+        <span><strong class="text-white">Sede:</strong> ${esc(sedeObj.nombre)}</span>
     `;
 
     // Ficha lateral
     document.getElementById('histFichaLateral').innerHTML = `
+        <div class="mb-2"><strong class="text-secondary small d-block">Sede / Consultorio:</strong> <span class="badge bg-derma-subtle text-derma border">${esc(sedeObj.nombre)}</span></div>
         <div class="mb-2"><strong class="text-secondary small d-block">Teléfono / WhatsApp:</strong> <span>${esc(p.telefono || 'No registrado')}</span></div>
         <div class="mb-2"><strong class="text-secondary small d-block">Correo:</strong> <span>${esc(p.correo || 'No registrado')}</span></div>
         <div class="mb-2"><strong class="text-secondary small d-block">Alergias:</strong> <span class="${p.alergias_bool === 'Sí' ? 'text-danger fw-bold' : ''}">${esc(p.alergias_bool)} ${p.alergias_desc ? ' - ' + esc(p.alergias_desc) : ''}</span></div>
@@ -652,9 +689,11 @@ async function guardarConsulta(e) {
 
     // Si programó próxima consulta, agendar automáticamente
     if (payload.proxima_consulta) {
+        const pacientesAll = await db.getAll('pacientes');
+        const pCons = pacientesAll.find(x => Number(x.id) === pacId);
         await db.insert('citas', {
             paciente_id: pacId,
-            sede_id: 1,
+            sede_id: pCons?.sede_id || 1,
             fecha_cita: payload.proxima_consulta,
             hora_cita: '10:00',
             tipo: 'Control Dermo-Estético',
@@ -1324,11 +1363,15 @@ async function enviarDocumentoActualPorCorreo() {
 // ==================== 8. EGRESOS Y REPOSOS ====================
 async function prepararNuevoEgreso(pacienteId) {
     currentPatientId = Number(pacienteId);
-    const pacientes = await db.getAll('pacientes');
+    const [pacientes, sedes] = await Promise.all([
+        db.getAll('pacientes'),
+        db.getAll('sedes', 'id', true)
+    ]);
     const p = pacientes.find(x => Number(x.id) === currentPatientId);
     if (!p) return navegarA('pacientes');
 
     document.getElementById('formEgreso').reset();
+    poblarSelectoresSedes(sedes, p.sede_id || sedes[0]?.id || 1);
     document.getElementById('eg_paciente_id').value = p.id;
     document.getElementById('eg_fecha').value = new Date().toISOString().split('T')[0];
     document.getElementById('egBannerNombre').innerText = `${p.nombre_apellido} (C.I: ${p.cedula})`;
@@ -1339,7 +1382,7 @@ async function guardarEgreso(e) {
     const pacId = Number(document.getElementById('eg_paciente_id').value);
     const payload = {
         paciente_id: pacId,
-        sede_id: 1,
+        sede_id: Number(document.getElementById('eg_sede_id')?.value) || 1,
         fecha_egreso: document.getElementById('eg_fecha').value,
         tipo_atencion: document.getElementById('eg_tipo_atencion').value,
         conducta_egreso: document.getElementById('eg_conducta').value,
@@ -1462,10 +1505,13 @@ async function verDocumentoEgreso(egresoId) {
 
 // ==================== 9. AGENDA DE CITAS Y PRE-REGISTRO WHATSAPP ====================
 async function cargarAgendaCitas() {
-    const [citas, pacientes] = await Promise.all([
+    const [citas, pacientes, sedes] = await Promise.all([
         db.getAll('citas', 'fecha_cita', true),
-        db.getAll('pacientes', 'nombre_apellido', true)
+        db.getAll('pacientes', 'nombre_apellido', true),
+        db.getAll('sedes', 'id', true)
     ]);
+
+    poblarSelectoresSedes(sedes, sedes[0]?.id || 1);
 
     // Llenar selector de pacientes existentes
     const sel = document.getElementById('cita_paciente_existente');
@@ -1476,14 +1522,15 @@ async function cargarAgendaCitas() {
 
     const tbody = document.getElementById('tablaCitasBody');
     if (citas.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-muted">No hay citas registradas.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="7" class="text-center py-4 text-muted">No hay citas registradas.</td></tr>`;
         return;
     }
 
     tbody.innerHTML = citas.map(c => {
         const p = pacientes.find(x => Number(x.id) === Number(c.paciente_id)) || { nombre_apellido: 'Paciente', cedula: '', telefono: '' };
+        const sedeObj = sedes.find(s => Number(s.id) === Number(c.sede_id || p.sede_id)) || sedes[0] || { nombre: 'Consultorio Principal' };
         const telWa = String(p.telefono || '').replace(/\D/g, '').replace(/^0/, '58');
-        const msgWa = encodeURIComponent(`Hola ${p.nombre_apellido}, le recordamos su cita con la Dra. Doris Romero (Medicina Estética y Dermatología) el día ${formatearFecha(c.fecha_cita)} ${c.hora_cita || ''}. Por favor confirmar su asistencia.`);
+        const msgWa = encodeURIComponent(`Hola ${p.nombre_apellido}, le recordamos su cita con la Dra. Doris Romero (${sedeObj.nombre}) el día ${formatearFecha(c.fecha_cita)} ${c.hora_cita || ''}. Por favor confirmar su asistencia.`);
         return `
             <tr>
                 <td class="ps-3 font-monospace fw-bold">${formatearFecha(c.fecha_cita)} <span class="text-muted fw-normal">${esc(c.hora_cita || '')}</span></td>
@@ -1492,6 +1539,7 @@ async function cargarAgendaCitas() {
                     <div class="small text-muted">${esc(p.cedula)}</div>
                 </td>
                 <td><span class="badge bg-derma-subtle text-derma border">${esc(c.tipo)}</span></td>
+                <td><span class="badge bg-light text-dark border"><i class="fa-solid fa-hospital text-derma me-1"></i>${esc(sedeObj.nombre)}</span></td>
                 <td><span class="badge bg-success">${esc(c.estado)}</span></td>
                 <td>
                     <div class="d-flex flex-wrap gap-1">
@@ -1707,6 +1755,7 @@ async function guardarCitaExpress(e) {
     let cedula = document.getElementById('cita_exp_cedula').value.trim();
     if (!cedula) cedula = 'PROV-' + Math.floor(100000 + Math.random() * 900000);
 
+    const sedeIdElegida = Number(document.getElementById('cita_exp_sede_id')?.value) || 1;
     let dup = await db.buscarDuplicadoCedula(cedula);
     let pacId;
     if (dup) {
@@ -1717,6 +1766,7 @@ async function guardarCitaExpress(e) {
             cedula_normalizada: normalizarCedula(cedula),
             nombre_apellido: nombre,
             telefono: tel,
+            sede_id: sedeIdElegida,
             sexo: 'Femenino',
             biotipo_cutaneo: 'Mixta',
             fototipo_fitzpatrick: 'III'
@@ -1726,7 +1776,7 @@ async function guardarCitaExpress(e) {
 
     await db.insert('citas', {
         paciente_id: pacId,
-        sede_id: 1,
+        sede_id: sedeIdElegida,
         fecha_cita: document.getElementById('cita_exp_fecha').value,
         hora_cita: document.getElementById('cita_exp_hora').value,
         tipo: document.getElementById('cita_exp_tipo').value,
@@ -1743,7 +1793,7 @@ async function guardarCitaExistente(e) {
     e.preventDefault();
     await db.insert('citas', {
         paciente_id: Number(document.getElementById('cita_paciente_existente').value),
-        sede_id: 1,
+        sede_id: Number(document.getElementById('cita_ex_sede_id')?.value) || 1,
         fecha_cita: document.getElementById('cita_ex_fecha').value,
         hora_cita: document.getElementById('cita_ex_hora').value,
         tipo: document.getElementById('cita_ex_tipo').value,
@@ -1752,6 +1802,117 @@ async function guardarCitaExistente(e) {
     });
     bootstrap.Modal.getInstance(document.getElementById('modalAgendarCita')).hide();
     await cargarAgendaCitas();
+}
+
+// ==================== 9B. GESTIÓN DE SEDES Y CONSULTORIOS ====================
+async function cargarVistaSedes() {
+    limpiarFormularioSede();
+    const [sedes, pacientes, citas] = await Promise.all([
+        db.getAll('sedes', 'id', true),
+        db.getAll('pacientes'),
+        db.getAll('citas')
+    ]);
+
+    poblarSelectoresSedes(sedes, sedes[0]?.id || 1);
+
+    const tbody = document.getElementById('tablaSedesBody');
+    if (!tbody) return;
+    if (sedes.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-muted">No hay sedes registradas.</td></tr>`;
+        return;
+    }
+
+    tbody.innerHTML = sedes.map(s => {
+        const numPac = pacientes.filter(p => Number(p.sede_id || 1) === Number(s.id)).length;
+        const numCit = citas.filter(c => Number(c.sede_id || 1) === Number(s.id)).length;
+        return `
+            <tr>
+                <td class="ps-3">
+                    <div class="fw-bold text-dark"><i class="fa-solid fa-hospital text-derma me-2"></i>${esc(s.nombre)}</div>
+                </td>
+                <td class="small text-muted">${esc(s.direccion || 'No especificada')}</td>
+                <td class="small font-monospace">${esc(s.telefono || '---')}</td>
+                <td>
+                    <span class="badge bg-derma-subtle text-derma border">${numPac} Pacientes</span>
+                    <span class="badge bg-light text-dark border ms-1">${numCit} Citas</span>
+                </td>
+                <td class="text-end pe-3">
+                    <div class="btn-group btn-group-sm">
+                        <button class="btn btn-outline-secondary" onclick="editarSede(${s.id})" title="Editar Sede"><i class="fa-solid fa-pen"></i></button>
+                        ${sedes.length > 1 ? `<button class="btn btn-outline-danger" onclick="eliminarSede(${s.id})" title="Eliminar Sede"><i class="fa-solid fa-trash"></i></button>` : ''}
+                    </div>
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
+
+function limpiarFormularioSede() {
+    const form = document.getElementById('formSede');
+    if (form) form.reset();
+    const idEdit = document.getElementById('sede_id_edit');
+    if (idEdit) idEdit.value = '';
+    const tit = document.getElementById('tituloFormSede');
+    if (tit) tit.innerHTML = '<i class="fa-solid fa-plus-circle text-derma me-1"></i> Registrar Nueva Sede';
+    const btnCancel = document.getElementById('btnCancelarEdicionSede');
+    if (btnCancel) btnCancel.style.display = 'none';
+}
+
+async function guardarSede(e) {
+    e.preventDefault();
+    const editId = document.getElementById('sede_id_edit').value;
+    const nombre = document.getElementById('sede_nombre').value.trim();
+    const direccion = document.getElementById('sede_direccion').value.trim();
+    const telefono = document.getElementById('sede_telefono').value.trim();
+
+    if (!nombre) return;
+
+    try {
+        if (editId) {
+            await db.update('sedes', editId, { nombre, direccion, telefono });
+        } else {
+            await db.insert('sedes', { nombre, direccion, telefono });
+        }
+        Swal.fire({
+            toast: true,
+            position: 'top-end',
+            icon: 'success',
+            title: editId ? 'Sede actualizada' : 'Nueva sede registrada',
+            showConfirmButton: false,
+            timer: 2000
+        });
+        await cargarVistaSedes();
+    } catch (err) {
+        Swal.fire('Error', err.message || 'No se pudo guardar la sede.', 'error');
+    }
+}
+
+async function editarSede(id) {
+    const sedes = await db.getAll('sedes');
+    const s = sedes.find(x => Number(x.id) === Number(id));
+    if (!s) return;
+
+    document.getElementById('sede_id_edit').value = s.id;
+    document.getElementById('sede_nombre').value = s.nombre || '';
+    document.getElementById('sede_direccion').value = s.direccion || '';
+    document.getElementById('sede_telefono').value = s.telefono || '';
+    document.getElementById('tituloFormSede').innerHTML = '<i class="fa-solid fa-pen text-derma me-1"></i> Editar Sede';
+    document.getElementById('btnCancelarEdicionSede').style.display = 'block';
+}
+
+async function eliminarSede(id) {
+    const res = await Swal.fire({
+        title: '¿Eliminar esta Sede?',
+        text: 'Los pacientes asociados conservarán su historial clínico.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#dc2626',
+        confirmButtonText: 'Sí, eliminar',
+        cancelButtonText: 'Cancelar'
+    });
+    if (!res.isConfirmed) return;
+    await db.remove('sedes', id);
+    await cargarVistaSedes();
 }
 
 // ==================== 10. COPILOTO IA GEMINI (DERMATOLOGÍA MULTIMODAL) ====================
