@@ -208,11 +208,28 @@ async function cargarTablaPacientes() {
                         <button class="btn btn-outline-secondary" onclick="navegarA('historia', ${p.id})"><i class="fa-solid fa-folder-open me-1"></i> Historia (${numCons})</button>
                         <button class="btn btn-derma" onclick="navegarA('nueva-consulta', ${p.id})"><i class="fa-solid fa-wand-magic-sparkles me-1"></i> Consulta</button>
                         <button class="btn btn-outline-secondary" onclick="navegarA('nuevo-paciente', ${p.id})" title="Editar"><i class="fa-solid fa-pen"></i></button>
+                        <button class="btn btn-outline-danger" onclick="eliminarPaciente(${p.id}, '${esc(p.nombre_apellido)}')" title="Eliminar Paciente"><i class="fa-solid fa-trash"></i></button>
                     </div>
                 </td>
             </tr>
         `;
     }).join('');
+}
+
+async function eliminarPaciente(id, nombre) {
+    const res = await Swal.fire({
+        title: '¿Eliminar este paciente?',
+        html: `Se eliminará el expediente de <strong>${nombre}</strong> junto con sus consultas, citas y fotos de prueba.`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#dc2626',
+        confirmButtonText: '<i class="fa-solid fa-trash me-1"></i> Sí, eliminar',
+        cancelButtonText: 'Cancelar'
+    });
+    if (!res.isConfirmed) return;
+    await db.remove('pacientes', id);
+    await cargarTablaPacientes();
+    Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Paciente eliminado', showConfirmButton: false, timer: 2000 });
 }
 
 async function prepararFormularioPaciente(editId = null) {
@@ -444,6 +461,20 @@ async function cargarHistoriaPaciente(pacienteId) {
                                         ${nl2br(c.rutina_noche)}
                                     </div>
                                 </div>` : ''}
+                            ${c.tratamiento_farmacologico ? `
+                                <div class="col-md-6">
+                                    <div class="p-2 rounded border small bg-white">
+                                        <strong class="text-derma d-block"><i class="fa-solid fa-prescription me-1"></i> Récipe Médico (Rp.):</strong>
+                                        ${nl2br(c.tratamiento_farmacologico)}
+                                    </div>
+                                </div>` : ''}
+                            ${c.orden_laboratorio ? `
+                                <div class="col-md-6">
+                                    <div class="p-2 rounded border small bg-white">
+                                        <strong class="text-secondary d-block"><i class="fa-solid fa-flask-vial text-derma me-1"></i> Orden de Laboratorio:</strong>
+                                        ${nl2br(c.orden_laboratorio)}
+                                    </div>
+                                </div>` : ''}
                         </div>
                     </div>
                 </div>
@@ -560,6 +591,8 @@ function seleccionarPincelMapa(color, label, btnEl) {
 
 function limpiarMapaFacial() {
     faceStrokes = [];
+    mapBgImages.custom = null;
+    if (currentMapType === 'custom') currentMapType = 'rostro';
     dibujarEsquemaFacialBase();
 }
 
@@ -673,7 +706,8 @@ function cargarPlantillaSkincare(tipo) {
 async function guardarConsulta(e) {
     e.preventDefault();
     const pacId = Number(document.getElementById('cons_paciente_id').value);
-    const mapaData = faceStrokes.length > 0 ? faceCanvas.toDataURL('image/jpeg', 0.85) : '';
+    const tieneMapa = faceStrokes.length > 0 || (currentMapType === 'custom' && mapBgImages.custom);
+    const mapaData = tieneMapa ? faceCanvas.toDataURL('image/jpeg', 0.85) : '';
 
     const payload = {
         paciente_id: pacId,
@@ -697,6 +731,24 @@ async function guardarConsulta(e) {
     };
 
     const saved = await db.insert('consultas', payload);
+
+    // Si en el Mapa Anatómico subió o tomó una "Foto Real", guardarla automáticamente también en la Galería Antes / Después
+    if (currentMapType === 'custom' && mapBgImages.custom) {
+        try {
+            const fotosPrevias = (await db.getAll('fotos_evolutivas')).filter(f => Number(f.paciente_id) === pacId);
+            const etapaAuto = fotosPrevias.length === 0 ? 'Antes (Inicial)' : 'Después (Resultado)';
+            await db.insert('fotos_evolutivas', {
+                paciente_id: pacId,
+                consulta_id: saved.id,
+                etapa: etapaAuto,
+                zona_anatomica: payload.zonas_afectadas || 'Rostro Frontal',
+                titulo: payload.motivo_consulta || 'Foto en Consulta',
+                fecha_foto: payload.fecha_consulta,
+                imagen_base64: mapaData,
+                notas: 'Anexada automáticamente desde Foto Real en Consulta'
+            });
+        } catch (errFoto) {}
+    }
 
     // Si programó próxima consulta, agendar automáticamente
     if (payload.proxima_consulta) {
@@ -893,11 +945,11 @@ async function verDocumentoConsulta(consultaId) {
                 <div class="p-2 rounded border bg-derma-subtle fw-bold mt-1">${nl2br(c.diagnosticos)}</div>
             </div>
 
-            ${c.procedimiento_realizado ? `
+            ${c.procedimiento_realizado || c.producto_lote_unidades ? `
             <div class="mb-3">
                 <strong class="text-derma small text-uppercase">Procedimiento Realizado en Consultorio:</strong>
                 <div class="p-2 rounded border mt-1">
-                    <div class="fw-bold">${esc(c.procedimiento_realizado)}</div>
+                    ${c.procedimiento_realizado ? `<div class="fw-bold">${esc(c.procedimiento_realizado)}</div>` : ''}
                     ${c.producto_lote_unidades ? `<div class="small text-muted">${esc(c.producto_lote_unidades)}</div>` : ''}
                 </div>
             </div>` : ''}
@@ -937,13 +989,19 @@ async function verDocumentoConsulta(consultaId) {
 
             ${c.tratamiento_farmacologico ? `
             <div class="mb-3">
-                <strong class="text-derma small text-uppercase">Rp. / Tratamiento Farmacológico Adicional:</strong>
-                <div class="p-3 rounded border mt-1 font-monospace small">${nl2br(c.tratamiento_farmacologico)}</div>
+                <strong class="text-derma small text-uppercase"><i class="fa-solid fa-prescription me-1"></i> RÉCIPE MÉDICO / PRESCRIPCIÓN FARMACOLÓGICA (Rp.):</strong>
+                <div class="p-3 rounded border mt-1 font-monospace small" style="background:#fdfcff;border-color:#c4b5fd !important;">${nl2br(c.tratamiento_farmacologico)}</div>
+            </div>` : ''}
+
+            ${c.orden_laboratorio ? `
+            <div class="mb-3">
+                <strong class="text-derma small text-uppercase"><i class="fa-solid fa-flask-vial me-1"></i> ORDEN MÉDICA DE LABORATORIO / PERFIL PARACLÍNICO:</strong>
+                <div class="p-2 rounded border mt-1 small">${nl2br(c.orden_laboratorio)}</div>
             </div>` : ''}
 
             ${c.cuidados_post_procedimiento ? `
             <div class="mb-3">
-                <strong class="text-derma small text-uppercase">Cuidados Post-Procedimiento:</strong>
+                <strong class="text-derma small text-uppercase">Cuidados e Indicaciones Post-Procedimiento:</strong>
                 <div class="p-2 rounded border bg-light mt-1 small">${nl2br(c.cuidados_post_procedimiento)}</div>
             </div>` : ''}
 
@@ -1106,7 +1164,7 @@ async function generarInstanciaPDFPorHojas() {
 
         y = dibujarBloqueSeccionPDF(pdf, 'Impresion Diagnostica:', c.diagnosticos, y, [245, 243, 255], [221, 214, 254], true);
 
-        if (c.procedimiento_realizado) {
+        if (c.procedimiento_realizado || c.producto_lote_unidades) {
             const procTexto = [c.procedimiento_realizado, c.producto_lote_unidades].filter(Boolean).join('\n');
             y = dibujarBloqueSeccionPDF(pdf, 'Procedimiento Realizado en Consultorio:', procTexto, y);
         }
@@ -1182,11 +1240,15 @@ async function generarInstanciaPDFPorHojas() {
         y2 += skinBoxH + 7;
 
         if (c.tratamiento_farmacologico) {
-            y2 = dibujarBloqueSeccionPDF(pdf, 'Rp. / Tratamiento Farmacologico Adicional:', c.tratamiento_farmacologico, y2);
+            y2 = dibujarBloqueSeccionPDF(pdf, 'RECIPE MEDICO / PRESCRIPCION FARMACOLOGICA (Rp.):', c.tratamiento_farmacologico, y2, [250, 245, 255], [196, 181, 253], true);
+        }
+
+        if (c.orden_laboratorio) {
+            y2 = dibujarBloqueSeccionPDF(pdf, 'ORDEN MEDICA DE LABORATORIO / PERFIL PARACLINICO:', c.orden_laboratorio, y2, [255, 255, 255], [203, 213, 225], false);
         }
 
         if (c.cuidados_post_procedimiento) {
-            y2 = dibujarBloqueSeccionPDF(pdf, 'Cuidados Post-Procedimiento:', c.cuidados_post_procedimiento, y2, [248, 250, 252], [226, 232, 240]);
+            y2 = dibujarBloqueSeccionPDF(pdf, 'CUIDADOS E INDICACIONES POST-PROCEDIMIENTO:', c.cuidados_post_procedimiento, y2, [248, 250, 252], [226, 232, 240]);
         }
 
         if (c.proxima_consulta) {
